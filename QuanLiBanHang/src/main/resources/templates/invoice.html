@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="|Hoa_Don_#${order.id}|">Hóa Đơn</title>
+    <style>
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .company-details {
+            text-align: right;
+        }
+        .customer-details {
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background-color: #f2f2f2;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .total-price {
+            font-size: 18px;
+            color: #d9534f;
+            font-weight: bold;
+        }
+        .btn-print {
+            background-color: #0275d8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        /* Style ẩn nút bấm khi thực hiện In hoặc Lưu PDF */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .invoice-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="invoice-box">
+    <!-- Nút thao tác (Sẽ ẩn đi khi bấm In/Xuất PDF) -->
+    <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+        <button onclick="window.print()" class="btn-print">🖨️ In Hóa Đơn / Xuất PDF</button>
+        <button onclick="window.close()" class="btn-print" style="background-color: #6c757d;">Đóng</button>
+    </div>
+
+    <!-- Header Hóa đơn -->
+    <div class="header">
+        <div>
+            <h2 style="margin: 0; color: #0275d8;">HÓA ĐƠN BÁN HÀNG</h2>
+            <p style="margin: 5px 0 0 0;" th:text="|Mã đơn hàng: #${order.id}|">#1</p>
+            <p style="margin: 5px 0 0 0; font-size: 13px;" th:text="|Ngày tạo: ${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm:ss')}|"></p>
+        </div>
+        <div class="company-details">
+            <h3 style="margin: 0;">CỬA HÀNG CSMS STORE</h3>
+            <p style="margin: 5px 0 0 0; font-size: 13px;">Hotline: 1900 xxxx</p>
+            <p style="margin: 5px 0 0 0; font-size: 13px;">Website: csms-store.com</p>
+        </div>
+    </div>
+
+    <!-- Thông tin Khách hàng -->
+    <div class="customer-details">
+        <h4 style="margin-top: 0;">👤 Thông tin khách hàng</h4>
+        <p style="margin: 5px 0;"><strong>Họ tên:</strong> <span th:text="${order.customerName}"></span></p>
+        <p style="margin: 5px 0;"><strong>Số điện thoại:</strong> <span th:text="${order.phoneNumber}"></span></p>
+        <p style="margin: 5px 0;"><strong>Địa chỉ giao hàng:</strong> <span th:text="${order.address}"></span></p>
+        <p style="margin: 5px 0;" th:if="${order.note != null and !order.note.isBlank()}"><strong>Ghi chú:</strong> <span th:text="${order.note}"></span></p>
+    </div>
+
+    <!-- Danh sách Sản phẩm -->
+    <table>
+        <thead>
+        <tr>
+            <th class="text-center">STT</th>
+            <th>Tên sản phẩm</th>
+            <th class="text-right">Đơn giá</th>
+            <th class="text-center">Số lượng</th>
+            <th class="text-right">Thành tiền</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="detail, stat : ${order.orderDetails}">
+            <td class="text-center" th:text="${stat.index + 1}">1</td>
+            <td th:text="${detail.product.name}">Tên SP</td>
+            <td class="text-right" th:text="|${#numbers.formatInteger(detail.price, 1, 'POINT')} ₫|">0 ₫</td>
+            <td class="text-center" th:text="${detail.quantity}">1</td>
+            <td class="text-right" th:text="|${#numbers.formatInteger(detail.price * detail.quantity, 1, 'POINT')} ₫|">0 ₫</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Tổng thanh toán -->
+    <div class="text-right" style="margin-top: 20px;">
+        <p style="margin: 5px 0; font-size: 16px;">Tổng cộng: <span class="total-price" th:text="|${#numbers.formatInteger(order.totalAmount, 1, 'POINT')} ₫|">0 ₫</span></p>
+    </div>
+
+    <!-- Chữ ký / Lời cảm ơn -->
+    <div style="margin-top: 40px; display: flex; justify-content: space-between; text-align: center;">
+        <div>
+            <p><strong>Khách hàng</strong></p>
+            <p style="font-size: 12px; color: #777;">(Ký và ghi rõ họ tên)</p>
+        </div>
+        <div>
+            <p><strong>Người lập hóa đơn</strong></p>
+            <p style="font-size: 12px; color: #777;">(Ký và ghi rõ họ tên)</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

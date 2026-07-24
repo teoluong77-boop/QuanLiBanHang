@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${product.id != null} ? 'Sửa sản phẩm' : 'Thêm sản phẩm'">Form Sản Phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1 th:text="${product.id != null} ? '✏️ Cập nhật sản phẩm' : '➕ Thêm sản phẩm mới'">Form Sản Phẩm</h1>
+
+    <form th:action="@{/products/save}" th:object="${product}" method="post">
+        <input type="hidden" th:field="*{id}">
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Tên sản phẩm (*):</label>
+            <input type="text" th:field="*{name}" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <!-- CHỌN DANH MỤC -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Danh mục (*):</label>
+            <select th:field="*{category.id}" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">-- Chọn danh mục --</option>
+                <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Giá bán (VNĐ) (*):</label>
+            <input type="number" th:field="*{price}" required step="1000" min="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Số lượng tồn kho (*):</label>
+            <input type="number" th:field="*{quantity}" required min="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Đường dẫn hình ảnh (URL):</label>
+            <input type="text" th:field="*{imageUrl}" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button class="btn" type="submit">Lưu sản phẩm</button>
+            <a class="btn btn-secondary" th:href="@{/products}">Hủy bỏ</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

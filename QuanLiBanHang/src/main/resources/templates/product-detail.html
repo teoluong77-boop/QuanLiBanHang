@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chi tiết sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Chi tiết sản phẩm</h1>
+
+    <div class="detail" th:if="${product != null}">
+        <!-- HIỂN THỊ HÌNH ẢNH SẢN PHẨM -->
+        <div class="product-image" style="margin-bottom: 20px;">
+            <img th:if="${product.imageUrl != null}"
+                 th:src="${product.imageUrl}"
+                 alt="Ảnh sản phẩm"
+                 style="max-width: 250px; max-height: 250px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; padding: 4px;">
+            <p th:if="${product.imageUrl == null}" class="muted">Chưa có ảnh sản phẩm.</p>
+        </div>
+
+        <p><strong>ID:</strong> <span th:text="${product.id}"></span></p>
+        <p><strong>Tên:</strong> <span th:text="${product.name}"></span></p>
+
+        <!-- Format giá tiền theo VNĐ -->
+        <p><strong>Giá:</strong> <span class="price" th:text="|${#numbers.formatInteger(product.price, 1, 'POINT')} ₫|"></span></p>
+
+        <p th:if="${product.quantity != null}">
+            <strong>Số lượng:</strong> <span th:text="${product.quantity}"></span>
+        </p>
+
+        <p th:if="${product.category != null}">
+            <strong>Danh mục:</strong> <span th:text="${product.category.name}"></span>
+        </p>
+    </div>
+
+    <div th:if="${product == null}">
+        <p class="muted">Không tìm thấy sản phẩm.</p>
+    </div>
+
+    <p style="margin-top: 20px;"><a class="btn btn-secondary" th:href="@{/products}">Quay lại</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thanh toán đơn hàng</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📝 Thông tin giao hàng</h1>
+        <a class="btn btn-secondary" th:href="@{/cart}">Quay lại giỏ hàng</a>
+    </div>
+
+    <form th:action="@{/checkout}" method="post">
+        <div style="margin-bottom: 15px;">
+            <label for="customerName" style="display: block; font-weight: bold; margin-bottom: 5px;">Họ và tên người nhận (*):</label>
+            <input type="text" id="customerName" name="customerName" required placeholder="Nguyễn Văn A"
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="phoneNumber" style="display: block; font-weight: bold; margin-bottom: 5px;">Số điện thoại (*):</label>
+            <input type="text" id="phoneNumber" name="phoneNumber" required placeholder="0901234567"
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="address" style="display: block; font-weight: bold; margin-bottom: 5px;">Địa chỉ nhận hàng (*):</label>
+            <input type="text" id="address" name="address" required placeholder="Số 123, đường ABC, Quận 1..."
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="note" style="display: block; font-weight: bold; margin-bottom: 5px;">Ghi chú (nếu có):</label>
+            <input type="text" id="note" name="note" placeholder="Giao giờ hành chính..."
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 6px; text-align: right;">
+            <h3 style="margin: 0; color: #d9534f;">Tong tiền thanh toán:
+                <span class="price" th:text="|${#numbers.formatInteger(totalAmount, 1, 'POINT')} ₫|">0 ₫</span>
+            </h3>
+        </div>
+
+        <div style="text-align: right;">
+            <button class="btn" type="submit" style="background-color: #5cb85c; padding: 10px 20px; font-size: 16px;">
+                Xác nhận đặt hàng ➔
+            </button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

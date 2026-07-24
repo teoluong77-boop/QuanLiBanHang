@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chi tiết đơn hàng của tôi</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 th:text="|Chi tiết đơn hàng #${order.id}|">Chi tiết đơn hàng #1</h1>
+        <a class="btn btn-secondary" th:href="@{/my-orders}">Quay lại danh sách đơn</a>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p><strong>Người nhận:</strong> <span th:text="${order.customerName}"></span></p>
+        <p><strong>Số điện thoại:</strong> <span th:text="${order.phoneNumber}"></span></p>
+        <p><strong>Địa chỉ:</strong> <span th:text="${order.address}"></span></p>
+        <p th:if="${order.note != null and !order.note.isBlank()}"><strong>Ghi chú:</strong> <span th:text="${order.note}"></span></p>
+        <p><strong>Thời gian đặt:</strong> <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm:ss')}"></span></p>
+    </div>
+
+    <h3>Sản phẩm trong đơn</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Tên sản phẩm</th>
+            <th>Đơn giá</th>
+            <th>Số lượng</th>
+            <th>Thành tiền</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="detail : ${order.orderDetails}">
+            <td th:text="${detail.product.name}">Tên SP</td>
+            <td class="price" th:text="|${#numbers.formatInteger(detail.price, 1, 'POINT')} ₫|">0 ₫</td>
+            <td style="text-align: center;" th:text="${detail.quantity}">1</td>
+            <td class="price" th:text="|${#numbers.formatInteger(detail.price * detail.quantity, 1, 'POINT')} ₫|">0 ₫</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div style="text-align: right; margin-top: 20px;">
+        <h2 style="color: #d9534f;">Tổng tiền: <span th:text="|${#numbers.formatInteger(order.totalAmount, 1, 'POINT')} ₫|">0 ₫</span></h2>
+    </div>
+</div>
+</body>
+</html>

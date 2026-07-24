@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đặt hàng thành công</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container" style="text-align: center; margin-top: 40px;">
+    <h1 style="color: #5cb85c;">🎉 Đặt hàng thành công!</h1>
+    <p style="font-size: 18px;">Cảm ơn bạn đã mua hàng. Mã đơn hàng của bạn là: <strong th:text="|#${order.id}|">#1</strong></p>
+
+    <div style="text-align: left; background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; display: inline-block; min-width: 300px;">
+        <p><strong>Người nhận:</strong> <span th:text="${order.customerName}"></span></p>
+        <p><strong>SĐT:</strong> <span th:text="${order.phoneNumber}"></span></p>
+        <p><strong>Địa chỉ:</strong> <span th:text="${order.address}"></span></p>
+        <p><strong>Tổng tiền:</strong> <span class="price" th:text="|${#numbers.formatInteger(order.totalAmount, 1, 'POINT')} ₫|"></span></p>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <a class="btn" th:href="@{/products}">Tiếp tục mua sắm</a>
+    </div>
+</div>
+</body>
+</html>

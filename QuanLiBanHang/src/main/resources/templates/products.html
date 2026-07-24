@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Danh sách sản phẩm</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+
+    <!-- Header hiển thị tiêu đề, các nút điều hướng và nút Đăng xuất -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">Danh sách sản phẩm</h1>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- NÚT QUẢN LÝ ĐƠN HÀNG DÀNH CHO ADMIN -->
+            <a class="btn" style="background-color: #0275d8; color: white;" th:href="@{/admin/orders}" sec:authorize="hasRole('ADMIN')">📊 Quản lý Đơn hàng</a>
+
+            <!-- NÚT XEM ĐƠN HÀNG CỦA TÔI DÀNH CHO USER & ADMIN -->
+            <a class="btn" style="background-color: #5bc0de; color: white;" th:href="@{/my-orders}">📜 Đơn hàng của tôi</a>
+
+            <!-- Nút Xem Giỏ Hàng -->
+            <a class="btn" style="background-color: #f0ad4e; color: white;" th:href="@{/cart}">🛒 Xem Giỏ Hàng</a>
+
+            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                <button class="btn btn-danger" type="submit">Đăng xuất</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <!-- Nút Thêm sản phẩm: CHỈ ADMIN MỚI THẤY -->
+        <a class="btn" th:href="@{/products/add}" sec:authorize="hasRole('ADMIN')">+ Thêm sản phẩm</a>
+
+        <!-- Tìm kiếm theo tên & Lọc theo Danh mục -->
+        <form th:action="@{/products}" method="get" style="display: flex; gap: 10px; align-items: center; margin: 0;">
+            <select name="categoryId" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">-- Tất cả danh mục --</option>
+                <option th:each="cat : ${categories}"
+                        th:value="${cat.id}"
+                        th:text="${cat.name}"
+                        th:selected="${cat.id == selectedCategoryId}"></option>
+            </select>
+
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm sản phẩm theo tên...">
+            <button class="btn btn-secondary" type="submit">Lọc / Tìm</button>
+            <a class="btn btn-secondary" th:href="@{/products}" th:if="${(keyword != null and !keyword.isBlank()) or selectedCategoryId != null}">Xóa lọc</a>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Hình ảnh</th>
+            <th>Tên</th>
+            <th>Danh mục</th>
+            <th>Giá</th>
+            <th>Kho</th>
+            <th>Chi tiết</th>
+            <th>Mua hàng</th>
+            <th sec:authorize="hasRole('ADMIN')">Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="product : ${products}">
+            <td th:text="${product.id}">1</td>
+
+            <!-- HIỂN THỊ HÌNH ẢNH SẢN PHẨM -->
+            <td style="text-align: center;">
+                <img th:if="${product.imageUrl != null}"
+                     th:src="${product.imageUrl}"
+                     alt="Ảnh sản phẩm"
+                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                <span th:if="${product.imageUrl == null}" class="muted">Chưa có ảnh</span>
+            </td>
+
+            <td th:text="${product.name}">Tên</td>
+
+            <!-- HIỂN THỊ DANH MỤC SẢN PHẨM -->
+            <td style="text-align: center;">
+                <span th:if="${product.category != null}" class="badge" style="background: #e2e3e5; padding: 4px 8px; border-radius: 4px; font-size: 13px;" th:text="${product.category.name}">Danh mục</span>
+                <span th:if="${product.category == null}" class="muted">-</span>
+            </td>
+
+            <!-- Format giá tiền theo VNĐ -->
+            <td class="price"
+                th:text="|${#numbers.formatInteger(product.price, 1, 'POINT')} ₫|">0 ₫</td>
+
+            <!-- HIỂN THỊ TRẠNG THÁI KHO HÀNG -->
+            <td style="text-align: center;">
+                <span th:if="${product.quantity != null and product.quantity > 5}" style="color: #28a745; font-weight: bold;" th:text="${product.quantity}">10</span>
+                <span th:if="${product.quantity != null and product.quantity <= 5 and product.quantity > 0}" style="color: #d9534f; font-weight: bold;" th:text="|Sắp hết (${product.quantity})|">Sắp hết</span>
+                <span th:if="${product.quantity != null and product.quantity <= 0}" style="color: #6c757d; font-style: italic;">Hết hàng</span>
+                <span th:if="${product.quantity == null}">-</span>
+            </td>
+
+            <td><a th:href="@{/products/{id}(id=${product.id})}">Xem</a></td>
+
+            <!-- Nút Thêm vào giỏ hàng (Tự động disable khi hết hàng) -->
+            <td>
+                <form th:action="@{/cart/add/{id}(id=${product.id})}" method="post" style="margin:0;">
+                    <button class="btn" style="background-color: #5cb85c;" type="submit" th:disabled="${product.quantity != null and product.quantity <= 0}">+ Thêm giỏ</button>
+                </form>
+            </td>
+
+            <!-- Nút Sửa & Xóa: CHỈ ADMIN MỚI THẤY -->
+            <td class="actions" sec:authorize="hasRole('ADMIN')">
+                <a class="btn btn-secondary" th:href="@{/products/edit/{id}(id=${product.id})}" style="margin-right: 5px; text-decoration: none;">Sửa</a>
+
+                <form th:action="@{/products/delete/{id}(id=${product.id})}" method="post" style="display:inline;"
+                      onsubmit="return confirm('Xóa sản phẩm này?');">
+                    <button class="btn btn-danger" type="submit">Xóa</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(products)}">
+            <td colspan="9" class="muted" style="text-align: center;">Không có sản phẩm nào.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý Đơn hàng - Admin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📊 Quản lý Đơn hàng (Admin)</h1>
+        <a class="btn btn-secondary" th:href="@{/products}">Quay lại trang sản phẩm</a>
+    </div>
+
+    <!-- Khối thống kê doanh thu -->
+    <div style="background: #e9ecef; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h3 style="margin: 0;">Tổng số đơn hàng: <span style="color: #0275d8;" th:text="${#lists.size(orders)}">0</span></h3>
+        </div>
+        <div>
+            <h3 style="margin: 0;">Tổng doanh thu: <span style="color: #d9534f;" th:text="|${#numbers.formatInteger(totalRevenue, 1, 'POINT')} ₫|">0 ₫</span></h3>
+        </div>
+    </div>
+
+    <table th:if="${not #lists.isEmpty(orders)}">
+        <thead>
+        <tr>
+            <th>Mã đơn</th>
+            <th>Tài khoản</th>
+            <th>Khách hàng</th>
+            <th>SĐT</th>
+            <th>Ngày đặt</th>
+            <th>Tổng tiền</th>
+            <th>Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="order : ${orders}">
+            <td style="text-align: center; font-weight: bold;" th:text="|#${order.id}|">#1</td>
+            <td style="text-align: center;">
+                <span th:if="${order.user != null}" class="badge" style="background: #0275d8; color: white; padding: 3px 8px; border-radius: 4px;" th:text="${order.user.username}">user</span>
+                <span th:if="${order.user == null}" class="muted">Khách vãng lai</span>
+            </td>
+            <td th:text="${order.customerName}">Tên KH</td>
+            <td th:text="${order.phoneNumber}">SĐT</td>
+            <td th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm')}">Ngày</td>
+            <td class="price" th:text="|${#numbers.formatInteger(order.totalAmount, 1, 'POINT')} ₫|">0 ₫</td>
+            <td style="text-align: center;">
+                <a class="btn btn-secondary" th:href="@{/admin/orders/{id}(id=${order.id})}" style="text-decoration: none;">Xem chi tiết</a>
+                <a class="btn" style="background-color: #0275d8; color: white; text-decoration: none;" th:href="@{/orders/{id}/invoice(id=${order.id})}" target="_blank">🖨️ In Hóa Đơn</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p th:if="${#lists.isEmpty(orders)}" class="muted" style="text-align: center; margin: 40px 0;">
+        Chưa có đơn hàng nào trong hệ thống.
+    </p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đơn hàng của tôi</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📜 Lịch sử đơn hàng của tôi</h1>
+        <a class="btn btn-secondary" th:href="@{/products}">Quay lại trang sản phẩm</a>
+    </div>
+
+    <table th:if="${not #lists.isEmpty(orders)}">
+        <thead>
+        <tr>
+            <th>Mã đơn</th>
+            <th>Ngày đặt</th>
+            <th>Địa chỉ nhận</th>
+            <th>Tổng tiền</th>
+            <th>Chi tiết</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="order : ${orders}">
+            <td style="text-align: center; font-weight: bold;" th:text="|#${order.id}|">#1</td>
+            <td th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm')}">24/07/2026 08:00</td>
+            <td th:text="${order.address}">Địa chỉ</td>
+            <td class="price" th:text="|${#numbers.formatInteger(order.totalAmount, 1, 'POINT')} ₫|">0 ₫</td>
+            <td style="text-align: center;">
+                <a class="btn btn-secondary" th:href="@{/my-orders/{id}(id=${order.id})}" style="text-decoration: none;">Xem đơn</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p th:if="${#lists.isEmpty(orders)}" class="muted" style="text-align: center; margin: 40px 0;">
+        Bạn chưa đặt đơn hàng nào. <a th:href="@{/products}">Mua sắm ngay!</a>
+    </p>
+
+</div>
+</body>
+</html>
