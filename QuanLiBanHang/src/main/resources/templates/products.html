@@ -3,8 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Danh sách sản phẩm</title>
+    <title>CSMS - Danh sách sản phẩm</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .badge-tag {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .badge-rating {
+            color: #d97706;
+            font-weight: bold;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -13,15 +29,20 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1 style="margin: 0;">Danh sách sản phẩm</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <!-- NÚT QUẢN LÝ ĐƠN HÀNG DÀNH CHO ADMIN -->
-            <a class="btn" style="background-color: #0275d8; color: white;" th:href="@{/admin/orders}" sec:authorize="hasRole('ADMIN')">📊 Quản lý Đơn hàng</a>
 
-            <!-- NÚT XEM ĐƠN HÀNG CỦA TÔI DÀNH CHO USER & ADMIN -->
-            <a class="btn" style="background-color: #5bc0de; color: white;" th:href="@{/my-orders}">📜 Đơn hàng của tôi</a>
+            <!-- NÚT CHỈ DÀNH CHO ADMIN -->
+            <div sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')" style="display: flex; gap: 10px;">
+                <a class="btn" style="background-color: #111827; color: white; font-weight: bold;" th:href="@{/admin}">⚙️ Quản trị CSMS</a>
+                <a class="btn" style="background-color: #0275d8; color: white;" th:href="@{/admin/orders}">📊 Quản lý Đơn hàng</a>
+            </div>
 
-            <!-- Nút Xem Giỏ Hàng -->
-            <a class="btn" style="background-color: #f0ad4e; color: white;" th:href="@{/cart}">🛒 Xem Giỏ Hàng</a>
+            <!-- NÚT CHỈ DÀNH CHO USER THƯỜNG (KHÁCH MUA HÀNG) -->
+            <div sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')" style="display: flex; gap: 10px;">
+                <a class="btn" style="background-color: #5bc0de; color: white;" th:href="@{/my-orders}">📜 Đơn hàng của tôi</a>
+                <a class="btn" style="background-color: #f0ad4e; color: white;" th:href="@{/cart}">🛒 Xem Giỏ Hàng</a>
+            </div>
 
+            <!-- Nút Đăng xuất cho tất cả mọi người -->
             <form th:action="@{/logout}" method="post" style="margin: 0;">
                 <button class="btn btn-danger" type="submit">Đăng xuất</button>
             </form>
@@ -30,7 +51,7 @@
 
     <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center;">
         <!-- Nút Thêm sản phẩm: CHỈ ADMIN MỚI THẤY -->
-        <a class="btn" th:href="@{/products/add}" sec:authorize="hasRole('ADMIN')">+ Thêm sản phẩm</a>
+        <a class="btn" th:href="@{/products/add}" sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">+ Thêm sản phẩm</a>
 
         <!-- Tìm kiếm theo tên & Lọc theo Danh mục -->
         <form th:action="@{/products}" method="get" style="display: flex; gap: 10px; align-items: center; margin: 0;">
@@ -55,11 +76,15 @@
             <th>Hình ảnh</th>
             <th>Tên</th>
             <th>Danh mục</th>
+            <th>Nhãn</th>
+            <th>Đánh giá</th>
             <th>Giá</th>
             <th>Kho</th>
             <th>Chi tiết</th>
-            <th>Mua hàng</th>
-            <th sec:authorize="hasRole('ADMIN')">Thao tác</th>
+            <!-- CHỈ USER MỚI CÓ CỘT MUA HÀNG -->
+            <th sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">Mua hàng</th>
+            <!-- CHỈ ADMIN MỚI CÓ CỘT THAO TÁC -->
+            <th sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">Thao tác</th>
         </tr>
         </thead>
         <tbody>
@@ -83,6 +108,18 @@
                 <span th:if="${product.category == null}" class="muted">-</span>
             </td>
 
+            <!-- CỘT NHÃN SẢN PHẨM -->
+            <td style="text-align: center;">
+                <span th:if="${product.tag != null and !product.tag.isBlank()}" class="badge-tag" th:text="${product.tag}">Bán chạy</span>
+                <span th:if="${product.tag == null or product.tag.isBlank()}" class="muted">-</span>
+            </td>
+
+            <!-- CỘT ĐÁNH GIÁ (SAO) -->
+            <td style="text-align: center;">
+                <span th:if="${product.rating != null and !product.rating.isBlank()}" class="badge-rating" th:text="|⭐ ${product.rating}|">⭐ 4.8</span>
+                <span th:if="${product.rating == null or product.rating.isBlank()}" class="muted">-</span>
+            </td>
+
             <!-- Format giá tiền theo VNĐ -->
             <td class="price"
                 th:text="|${#numbers.formatInteger(product.price, 1, 'POINT')} ₫|">0 ₫</td>
@@ -97,15 +134,15 @@
 
             <td><a th:href="@{/products/{id}(id=${product.id})}">Xem</a></td>
 
-            <!-- Nút Thêm vào giỏ hàng (Tự động disable khi hết hàng) -->
-            <td>
+            <!-- Nút Thêm vào giỏ hàng: CHỈ KHÁCH HÀNG THƯỜNG MỚI THẤY -->
+            <td sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">
                 <form th:action="@{/cart/add/{id}(id=${product.id})}" method="post" style="margin:0;">
                     <button class="btn" style="background-color: #5cb85c;" type="submit" th:disabled="${product.quantity != null and product.quantity <= 0}">+ Thêm giỏ</button>
                 </form>
             </td>
 
             <!-- Nút Sửa & Xóa: CHỈ ADMIN MỚI THẤY -->
-            <td class="actions" sec:authorize="hasRole('ADMIN')">
+            <td class="actions" sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">
                 <a class="btn btn-secondary" th:href="@{/products/edit/{id}(id=${product.id})}" style="margin-right: 5px; text-decoration: none;">Sửa</a>
 
                 <form th:action="@{/products/delete/{id}(id=${product.id})}" method="post" style="display:inline;"
@@ -115,7 +152,7 @@
             </td>
         </tr>
         <tr th:if="${#lists.isEmpty(products)}">
-            <td colspan="9" class="muted" style="text-align: center;">Không có sản phẩm nào.</td>
+            <td colspan="10" class="muted" style="text-align: center;">Không có sản phẩm nào.</td>
         </tr>
         </tbody>
     </table>

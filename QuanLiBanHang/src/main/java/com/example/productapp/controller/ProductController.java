@@ -3,6 +3,7 @@ package com.example.productapp.controller;
 import com.example.productapp.entity.Product;
 import com.example.productapp.repository.CategoryRepository;
 import com.example.productapp.service.ProductService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -56,11 +57,12 @@ public class ProductController {
         return "add-product";
     }
 
-    /** Xử lý submit form thêm sản phẩm (Có nhận file ảnh) */
+    /** Xử lý submit form thêm sản phẩm (Có nhận file ảnh, rating & tag) */
     @PostMapping("/add")
     public String addProduct(@Valid @ModelAttribute("product") Product product,
                              BindingResult bindingResult,
                              @RequestParam(name = "imageFile", required = false) MultipartFile imageFile,
+                             HttpServletRequest request,
                              Model model) throws IOException {
 
         if (bindingResult.hasErrors()) {
@@ -86,6 +88,13 @@ public class ProductController {
         }
 
         productService.add(product);
+
+        // Kiểm tra nếu gọi từ trang /admin thì chuyển hướng về /admin, ngược lại về /products
+        String referer = request.getHeader("Referer");
+        if (referer != null && referer.contains("/admin")) {
+            return "redirect:/admin";
+        }
+
         return "redirect:/products";
     }
 
@@ -120,6 +129,10 @@ public class ProductController {
             existingProduct.setPrice(product.getPrice());
             existingProduct.setQuantity(product.getQuantity());
             existingProduct.setCategory(product.getCategory());
+
+            // 🌟 ĐÃ BỔ SUNG: Cập nhật Đánh giá (rating) và Nhãn sản phẩm (tag)
+            existingProduct.setRating(product.getRating());
+            existingProduct.setTag(product.getTag());
 
             // Nếu người dùng chọn ảnh mới thì đổi ảnh, ngược lại giữ ảnh cũ
             if (imageFile != null && !imageFile.isEmpty()) {

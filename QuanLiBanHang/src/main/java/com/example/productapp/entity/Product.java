@@ -37,6 +37,10 @@ public class Product {
     // Trường lưu đường dẫn ảnh sản phẩm (Ví dụ: /images/17100000_sanpham.jpg)
     private String imageUrl;
 
+    // 🌟 BỔ SUNG 2 TRƯỜNG ĐÁNH GIÁ VÀ NHÃN SẢN PHẨM
+    private String rating; // Lưu sao/đánh giá (Ví dụ: 4.8 / 5 ⭐)
+    private String tag;    // Lưu nhãn (Ví dụ: Bán chạy, Nổi bật, Hàng ế...)
+
     // Mối quan hệ N-1 với bảng Category (Một danh mục có nhiều sản phẩm)
     @ManyToOne
     @JoinColumn(name = "category_id")

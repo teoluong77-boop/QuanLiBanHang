@@ -23,6 +23,24 @@
         <p><strong>ID:</strong> <span th:text="${product.id}"></span></p>
         <p><strong>Tên:</strong> <span th:text="${product.name}"></span></p>
 
+        <!-- BỔ SUNG NHÃN SẢN PHẨM -->
+        <p>
+            <strong>Nhãn sản phẩm:</strong>
+            <span th:if="${product.tag != null and !product.tag.isBlank()}"
+                  style="background-color: #fef08a; color: #854d0e; padding: 3px 8px; border-radius: 6px; font-weight: bold; font-size: 13px;"
+                  th:text="${product.tag}"></span>
+            <span th:if="${product.tag == null or product.tag.isBlank()}" class="muted">Chưa có nhãn</span>
+        </p>
+
+        <!-- BỔ SUNG ĐÁNH GIÁ (SAO) -->
+        <p>
+            <strong>Đánh giá:</strong>
+            <span th:if="${product.rating != null and !product.rating.isBlank()}"
+                  style="color: #d97706; font-weight: bold;"
+                  th:text="|⭐ ${product.rating}|"></span>
+            <span th:if="${product.rating == null or product.rating.isBlank()}" class="muted">Chưa có đánh giá</span>
+        </p>
+
         <!-- Format giá tiền theo VNĐ -->
         <p><strong>Giá:</strong> <span class="price" th:text="|${#numbers.formatInteger(product.price, 1, 'POINT')} ₫|"></span></p>
 
