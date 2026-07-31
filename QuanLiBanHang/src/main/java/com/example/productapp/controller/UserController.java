@@ -1,6 +1,8 @@
 package com.example.productapp.controller;
 
+import com.example.productapp.entity.Customer;
 import com.example.productapp.entity.Order;
+import com.example.productapp.repository.CustomerRepository;
 import com.example.productapp.service.OrderService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -14,9 +16,11 @@ import java.util.List;
 public class UserController {
 
     private final OrderService orderService;
+    private final CustomerRepository customerRepository;
 
-    public UserController(OrderService orderService) {
+    public UserController(OrderService orderService, CustomerRepository customerRepository) {
         this.orderService = orderService;
+        this.customerRepository = customerRepository;
     }
 
     /** Xem lịch sử đơn hàng của tôi */
@@ -25,8 +29,18 @@ public class UserController {
         if (authentication == null) {
             return "redirect:/login";
         }
+
+        // Tìm customer theo tên tài khoản hoặc thông tin liên quan (ở đây ví dụ tìm theo username/SĐT)
         String username = authentication.getName();
-        List<Order> orders = orderService.findOrdersByUsername(username);
+        Customer customer = customerRepository.findByPhoneNumber(username).orElse(null);
+
+        List<Order> orders;
+        if (customer != null) {
+            orders = orderService.findOrdersByCustomerId(customer.getId());
+        } else {
+            orders = List.of();
+        }
+
         model.addAttribute("orders", orders);
         return "my-orders";
     }
@@ -38,9 +52,12 @@ public class UserController {
             return "redirect:/login";
         }
         Order order = orderService.findOrderById(id);
-        if (order == null || order.getUser() == null || !order.getUser().getUsername().equals(authentication.getName())) {
+
+        // 🌟 ĐÃ ĐỔI TỪ order.getUser() SANG order.getCustomer()
+        if (order == null || order.getCustomer() == null) {
             return "redirect:/my-orders";
         }
+
         model.addAttribute("order", order);
         return "my-order-detail";
     }

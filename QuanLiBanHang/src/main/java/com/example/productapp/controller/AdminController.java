@@ -10,6 +10,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Controller
@@ -36,8 +37,9 @@ public class AdminController {
         model.addAttribute("productCount", products.size());
         model.addAttribute("orderCount", orderService.findAllOrders().size());
 
-        // 🌟 LẤY DOANH THU THẬT TỪ DATABASE BẰNG HÀM CÓ SẴN CỦA ORDERSERVICE
-        model.addAttribute("totalRevenue", (long) orderService.getTotalRevenue());
+        // 🌟 LẤY DOANH THU THẬT BẰNG BIGDECIMAL (Truyền trực tiếp BigDecimal hoặc .longValue())
+        BigDecimal totalRevenue = orderService.getTotalRevenue();
+        model.addAttribute("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
 
         // Lấy dữ liệu thật từ Database cho biểu đồ Chart.js
         List<String> chartNames = products.stream()

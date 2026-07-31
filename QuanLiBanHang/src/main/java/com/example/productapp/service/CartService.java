@@ -1,10 +1,11 @@
 package com.example.productapp.service;
 
-import com.example.productapp.entity.CartItem; // <- Đã đổi sang package entity
+import com.example.productapp.entity.CartItem;
 import com.example.productapp.entity.Product;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,9 +50,17 @@ public class CartService {
         return items;
     }
 
-    // Tính tổng số tiền trong giỏ
-    public double getTotalAmount() {
-        return items.stream().mapToDouble(CartItem::getTotalPrice).sum();
+    // 🌟 TÍNH TỔNG SỐ TIỀN TRONG GIỎ (ĐÃ ĐỔI SANG BIGDECIMAL)
+    public BigDecimal getTotalAmount() {
+        BigDecimal total = BigDecimal.ZERO;
+        for (CartItem item : items) {
+            if (item.getProduct() != null && item.getProduct().getPrice() != null) {
+                BigDecimal itemPrice = item.getProduct().getPrice();
+                BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+                total = total.add(itemTotal);
+            }
+        }
+        return total;
     }
 
     // Xóa sạch giỏ hàng

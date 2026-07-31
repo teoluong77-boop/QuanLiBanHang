@@ -1,12 +1,13 @@
 package com.example.productapp.service;
 
 import com.example.productapp.entity.*;
+import com.example.productapp.repository.CustomerRepository;
 import com.example.productapp.repository.OrderRepository;
 import com.example.productapp.repository.ProductRepository;
-import com.example.productapp.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,57 +16,76 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final CartService cartService;
 
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository, UserRepository userRepository, CartService cartService) {
+    public OrderService(OrderRepository orderRepository,
+                        ProductRepository productRepository,
+                        CustomerRepository customerRepository,
+                        CartService cartService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
-        this.userRepository = userRepository;
+        this.customerRepository = customerRepository;
         this.cartService = cartService;
     }
 
     @Transactional
-    public Order createOrder(String customerName, String phoneNumber, String address, String note, String username) {
+    public Order createOrder(String customerName, String phoneNumber, String address, String note, String email) {
         List<CartItem> cartItems = cartService.getItems();
         if (cartItems.isEmpty()) {
             return null;
         }
 
-        User user = null;
-        if (username != null && !username.isBlank()) {
-            user = userRepository.findByUsername(username).orElse(null);
-        }
+        // 1. TẠO HOẶC TÌM KHÁCH HÀNG (CUSTOMER) THEO SỐ ĐIỆN THOẠI
+        Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+                .orElseGet(() -> Customer.builder()
+                        .name(customerName)
+                        .phoneNumber(phoneNumber)
+                        .address(address)
+                        .email(email)
+                        .build());
+
+        customer = customerRepository.save(customer);
+
+        // 2. KHỞI TẠO ĐƠN HÀNG VỚI TỔNG TIỀN BIGDECIMAL
+        BigDecimal totalAmount = cartService.getTotalAmount();
 
         Order order = Order.builder()
                 .customerName(customerName)
                 .phoneNumber(phoneNumber)
                 .address(address)
                 .note(note)
-                .totalAmount(cartService.getTotalAmount())
+                .totalAmount(totalAmount)
                 .orderDate(LocalDateTime.now())
-                .user(user)
+                .customer(customer) // Gắn liên kết với Customer
                 .build();
 
+        // 3. XỬ LÝ TỪNG CHI TIẾT ĐƠN HÀNG (ORDER DETAIL)
         for (CartItem item : cartItems) {
             Product product = item.getProduct();
 
-            // Kiem tra va Tru ton kho
+            // Kiểm tra và trừ tồn kho
             if (product.getQuantity() != null) {
                 int newQuantity = product.getQuantity() - item.getQuantity();
                 if (newQuantity < 0) {
-                    throw new RuntimeException("San pham " + product.getName() + " khong du so luong trong kho!");
+                    throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ số lượng trong kho!");
                 }
                 product.setQuantity(newQuantity);
                 productRepository.save(product);
             }
 
+            // Tính đơn giá và thành tiền (subtotal = price * quantity)
+            BigDecimal price = product.getPrice();
+            BigDecimal subtotal = price.multiply(BigDecimal.valueOf(item.getQuantity()));
+
             OrderDetail detail = OrderDetail.builder()
                     .order(order)
                     .product(product)
                     .quantity(item.getQuantity())
-                    .price(product.getPrice())
+                    .price(price)
+                    .subtotal(subtotal) // 🌟 BỔ SUNG SUBTOTAL THEO Ý THẦY
                     .build();
+
             order.getOrderDetails().add(detail);
         }
 
@@ -74,27 +94,26 @@ public class OrderService {
         return savedOrder;
     }
 
-    // Lay tat ca don hang
+    // Lấy tất cả đơn hàng
     public List<Order> findAllOrders() {
         return orderRepository.findAll();
     }
 
-    // Lay danh sach don hang theo username
-    public List<Order> findOrdersByUsername(String username) {
-        User user = userRepository.findByUsername(username).orElse(null);
-        if (user == null) {
-            return List.of();
-        }
-        return orderRepository.findByUserOrderByOrderDateDesc(user);
+    // Lấy danh sách đơn hàng theo id của Customer
+    public List<Order> findOrdersByCustomerId(Long customerId) {
+        return orderRepository.findByCustomerIdOrderByOrderDateDesc(customerId);
     }
 
-    // Lay chi tiet 1 don hang
+    // Lấy chi tiết 1 đơn hàng
     public Order findOrderById(Long id) {
         return orderRepository.findById(id).orElse(null);
     }
 
-    // Tinh tong doanh thu
-    public double getTotalRevenue() {
-        return orderRepository.findAll().stream().mapToDouble(Order::getTotalAmount).sum();
+    // 🌟 TÍNH TỔNG DOANH THU DÙNG BIGDECIMAL
+    public BigDecimal getTotalRevenue() {
+        return orderRepository.findAll().stream()
+                .map(Order::getTotalAmount)
+                .filter(amount -> amount != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

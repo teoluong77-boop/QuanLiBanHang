@@ -26,15 +26,16 @@ public class OrderInvoiceController {
 
         Order order = orderService.findOrderById(id);
         if (order == null) {
-            return "redirect:/my-orders";
+            return "redirect:/";
         }
 
-        // Kiểm tra quyền: Hoặc là Admin, hoặc là chính chủ sở hữu đơn hàng mới xem được
+        // Kiểm tra quyền: Hoặc là Admin, hoặc là đơn hàng hợp lệ
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isAdmin && (order.getUser() == null || !order.getUser().getUsername().equals(authentication.getName()))) {
-            return "redirect:/my-orders";
+        // Nếu không phải Admin, kiểm tra xem đơn hàng có gắn với Customer hay không
+        if (!isAdmin && order.getCustomer() == null) {
+            return "redirect:/";
         }
 
         model.addAttribute("order", order);

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Controller
@@ -24,7 +25,9 @@ public class AdminOrderController {
     @GetMapping
     public String listOrders(Model model) {
         List<Order> orders = orderService.findAllOrders();
-        double totalRevenue = orderService.getTotalRevenue();
+
+        // 🌟 ĐÃ ĐỔI TỪ DOUBLE SANG BIGDECIMAL
+        BigDecimal totalRevenue = orderService.getTotalRevenue();
 
         model.addAttribute("orders", orders);
         model.addAttribute("totalRevenue", totalRevenue);

@@ -57,7 +57,7 @@ public class ProductController {
         return "add-product";
     }
 
-    /** Xử lý submit form thêm sản phẩm (Có nhận file ảnh, rating & tag) */
+    /** Xử lý submit form thêm sản phẩm */
     @PostMapping("/add")
     public String addProduct(@Valid @ModelAttribute("product") Product product,
                              BindingResult bindingResult,
@@ -70,7 +70,7 @@ public class ProductController {
             return "add-product";
         }
 
-        // Xử lý lưu file ảnh nếu người dùng chọn file
+        // Xử lý lưu file ảnh
         if (imageFile != null && !imageFile.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
             String uploadDir = "src/main/resources/static/images/";
@@ -89,7 +89,6 @@ public class ProductController {
 
         productService.add(product);
 
-        // Kiểm tra nếu gọi từ trang /admin thì chuyển hướng về /admin, ngược lại về /products
         String referer = request.getHeader("Referer");
         if (referer != null && referer.contains("/admin")) {
             return "redirect:/admin";
@@ -130,11 +129,9 @@ public class ProductController {
             existingProduct.setQuantity(product.getQuantity());
             existingProduct.setCategory(product.getCategory());
 
-            // 🌟 ĐÃ BỔ SUNG: Cập nhật Đánh giá (rating) và Nhãn sản phẩm (tag)
             existingProduct.setRating(product.getRating());
             existingProduct.setTag(product.getTag());
 
-            // Nếu người dùng chọn ảnh mới thì đổi ảnh, ngược lại giữ ảnh cũ
             if (imageFile != null && !imageFile.isEmpty()) {
                 String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
                 String uploadDir = "src/main/resources/static/images/";

@@ -62,27 +62,38 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Công khai tài nguyên static & trang Login/Register
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-
-                        // 2. Dùng hasAnyAuthority để bắt cả "ADMIN" và "ROLE_ADMIN" không lo bị lỗi
+                        // 1. CHỈ DÀNH CHO ADMIN: Thêm, sửa, xóa sản phẩm & trang Dashboard Admin (Đặt lên trên cùng để ưu tiên)
                         .requestMatchers("/products/add", "/products/edit/**", "/products/delete/**", "/admin/**")
                         .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
 
-                        // 3. Các trang cho người dùng đã đăng nhập
-                        .requestMatchers("/products/**", "/cart/**", "/checkout/**", "/my-orders/**").authenticated()
+                        // 2. BẮT BỘC ĐĂNG NHẬP: Trang xem lịch sử đơn hàng cá nhân
+                        .requestMatchers("/my-orders/**").authenticated()
 
-                        // 4. Request còn lại
-                        .anyRequest().authenticated()
+                        // 3. CÔNG KHAI CẢ CHO KHÁCH VẮNG LAI: Xem sản phẩm, xem chi tiết, mua hàng, giỏ hàng, checkout
+                        .requestMatchers(
+                                "/",
+                                "/login",
+                                "/register",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/products/**",
+                                "/cart/**",
+                                "/checkout/**",
+                                "/orders/**"
+                        ).permitAll()
+
+                        // 4. Các Request còn lại
+                        .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .successHandler(customSuccessHandler()) // Gọi handler phân luồng
+                        .successHandler(customSuccessHandler()) // Phân luồng đăng nhập (Admin -> /admin, User -> /products)
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout")
+                        .logoutSuccessUrl("/products") // 🌟 ĐÃ ĐỔI: Đăng xuất xong chuyển ngay tới Trang danh sách mua hàng
                         .permitAll()
                 );
 

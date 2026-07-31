@@ -1,9 +1,11 @@
 package com.example.productapp.service;
 
 import com.example.productapp.entity.Product;
+import com.example.productapp.repository.OrderDetailRepository;
 import com.example.productapp.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -15,6 +17,9 @@ public class ProductService {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private OrderDetailRepository orderDetailRepository; // 🌟 Tiêm OrderDetailRepository xử lý khóa ngoại
 
     /** Danh sach tat ca san pham tu CSDL MySQL */
     public List<Product> findAll() {
@@ -43,8 +48,13 @@ public class ProductService {
     }
 
     /** Xoa san pham theo id */
+    @Transactional // 🌟 BẮT BỘC DÙNG @Transactional ĐỂ XÓA LIÊN BẢNG
     public boolean deleteById(Long id) {
         if (productRepository.existsById(id)) {
+            // Step 1: Xóa tất cả các chi tiết đơn hàng chứa sản phẩm này trước
+            orderDetailRepository.deleteByProductId(id);
+
+            // Step 2: Xóa sản phẩm ra khỏi DB
             productRepository.deleteById(id);
             return true;
         }
