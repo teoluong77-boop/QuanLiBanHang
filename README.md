@@ -76,4 +76,4 @@ Việc định dạng dữ liệu đầu ra được phân chia xử lý rõ rà
 | **Số lượng kho / Mua** | `Integer` | Quản lý số lượng mặt hàng, kiểm soát cảnh báo tồn kho. |
 | **Thời gian tạo đơn** | `LocalDateTime` | Lưu chính xác ngày giờ tạo giao dịch theo chuẩn API Java 8+. |
 sơ đồ database :
-![img.png](img.png)
+<img width="1256" height="722" alt="Ảnh chụp màn hình 2026-08-01 205246" src="https://github.com/user-attachments/assets/79984799-119b-49a3-af00-2e6d108d7071" />
