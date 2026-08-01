@@ -12,23 +12,19 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    // 🌟 LẤY TẤT CẢ ĐƠN HÀNG DÀNH CHO ADMIN (SẮP XẾP MỚI NHẤT LÊN ĐẦU)
     List<Order> findByDeletedFalseOrDeletedIsNullOrderByOrderDateDesc();
 
-    // 🌟 1. FIX LỖI BÁO THIẾU HÀM Ở DÒNG 199 (findOrdersByCustomerIdCustom)
     @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId AND (o.deleted = false OR o.deleted IS NULL) ORDER BY o.orderDate DESC")
     List<Order> findOrdersByCustomerIdCustom(@Param("customerId") Long customerId);
 
-    // 🌟 2. HÀM TRUY VẤN ĐƠN HÀNG THEO USERNAME (HÀM BỒ ĐANG GỌI Ở DÒNG 204)
-    @Query("SELECT o FROM Order o WHERE (o.customer.user.username = :username OR o.customerName = :username) AND (o.deleted = false OR o.deleted IS NULL) ORDER BY o.orderDate DESC")
-    List<Order> findOrdersByUsernameCustom(@Param("username") String username);
+    // 🌟 TRUY VẤN BAO PHỦ 100%: DÙ DATABASE CÓ BỊ KHUYẾT USER_ID HAY CHƯA LINK DỮ LIỆU CŨNG VỚT ĐƯỢC HẾT ĐƠN
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN o.customer c LEFT JOIN c.user u " +
+            "WHERE (u.username = :username OR c.user.username = :username OR c.id = :customerId OR o.customerName = :username OR c.email = :username) " +
+            "AND (o.deleted = false OR o.deleted IS NULL) " +
+            "ORDER BY o.orderDate DESC")
+    List<Order> findOrdersByUsernameOrCustomerIdCustom(@Param("username") String username, @Param("customerId") Long customerId);
 
-    // Tìm danh sách đơn hàng theo Customer ID
     List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
-
-    // Tìm danh sách đơn hàng theo đối tượng Customer
     List<Order> findByCustomerOrderByOrderDateDesc(Customer customer);
-
-    // Tìm danh sách đơn hàng theo số điện thoại
     List<Order> findByPhoneNumberOrderByOrderDateDesc(String phoneNumber);
 }

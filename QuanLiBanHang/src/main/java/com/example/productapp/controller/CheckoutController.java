@@ -30,7 +30,6 @@ public class CheckoutController {
     /** Hiển thị trang nhập thông tin đặt hàng */
     @GetMapping
     public String showCheckoutPage(Authentication authentication, Model model) {
-        // 🌟 1. GIỎ HÀNG RỖNG THÌ CHUYỂN BẮT BỘC VỀ TRANG GIỎ HÀNG
         if (cartService.getItems() == null || cartService.getItems().isEmpty()) {
             return "redirect:/cart";
         }
@@ -56,13 +55,20 @@ public class CheckoutController {
                                   Authentication authentication,
                                   RedirectAttributes redirectAttributes) {
 
-        // 🌟 2. GIỎ HÀNG RỖNG THÌ KHÔNG CHO PHÉP XỬ LÝ
         if (cartService.getItems() == null || cartService.getItems().isEmpty()) {
             return "redirect:/cart";
         }
 
         String username = (authentication != null) ? authentication.getName() : null;
-        String email = username != null ? username + "@gmail.com" : "";
+
+        // 🌟 Lấy email thật từ Customer nếu có, tránh tạo chuỗi ảo gây lỗi DB
+        String email = "";
+        if (username != null) {
+            Customer existingCustomer = customerService.getCustomerByUsername(username);
+            if (existingCustomer != null && existingCustomer.getEmail() != null) {
+                email = existingCustomer.getEmail();
+            }
+        }
 
         try {
             Order order = orderService.createOrder(customerName, phoneNumber, address, note, email, paymentMethod, username);
@@ -71,18 +77,20 @@ public class CheckoutController {
                 return "redirect:/cart";
             }
 
-            // 🌟 3. ĐẶT HÀNG THÀNH CÔNG -> REDIRECT SANG TRANG THÀNH CÔNG (CHỐNG REFRESH DỰ LIỆU)
             redirectAttributes.addFlashAttribute("order", order);
             return "redirect:/checkout/success";
 
         } catch (Exception e) {
-            // 🌟 4. BẮT LỖI VÀ REDIRECT VỀ /checkout
+            // 🌟 IN LỖI RA CONSOLE ĐỂ DỄ BẮT BỆNH NẾU DÍNH ROLLBACK
+            System.err.println("❌ LỖI TẠO ĐƠN HÀNG: " + e.getMessage());
+            e.printStackTrace();
+
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage() != null ? e.getMessage() : "Có lỗi xảy ra trong quá trình xử lý đơn hàng!");
             return "redirect:/checkout";
         }
     }
 
-    /** 🌟 5. TRANG HIỂN THỊ ĐẶT HÀNG THÀNH CÔNG */
+    /** TRANG HIỂN THỊ ĐẶT HÀNG THÀNH CÔNG */
     @GetMapping("/success")
     public String orderSuccess() {
         return "order-success";

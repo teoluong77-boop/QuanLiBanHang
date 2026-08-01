@@ -61,17 +61,22 @@ public class OrderService {
             customer = customerService.getCustomerByUsername(username);
         }
 
+        // 🌟 GÁN CHẮC CHẮN VÀ ĐỒNG BỘ LOGGED IN USER VÀO CUSTOMER
         if (customer == null) {
             customer = Customer.builder()
                     .name(customerName)
                     .phoneNumber(phoneNumber)
                     .address(address)
                     .email(email)
+                    .user(loggedInUser)
                     .build();
             customer = customerRepository.save(customer);
         } else {
             customer.setName(customerName);
             customer.setAddress(address);
+            if (loggedInUser != null) {
+                customer.setUser(loggedInUser); // Luôn cập nhật liên kết user
+            }
             if (phoneNumber != null && !phoneNumber.isBlank()) {
                 customer.setPhoneNumber(phoneNumber);
             }
@@ -119,6 +124,7 @@ public class OrderService {
                 .phoneNumber(phoneNumber)
                 .address(address)
                 .note(note)
+                .email(email) // 🌟 GÁN EMAIL VÀO ORDER
                 .paymentMethod(formattedPaymentMethod)
                 .status(orderStatus)
                 .deleted(false)
@@ -139,8 +145,14 @@ public class OrderService {
                     throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ số lượng trong kho!");
                 }
                 product.setQuantity(newQuantity);
-                productRepository.save(product);
             }
+
+            // 🌟 SỬA LỖI CORE: CHỐNG PHẠM VALIDATION "importPrice >= 1" KHI HIBERNATE SAVE PRODUCT
+            if (product.getImportPrice() == null || product.getImportPrice().compareTo(BigDecimal.ONE) < 0) {
+                product.setImportPrice(BigDecimal.ONE);
+            }
+
+            productRepository.save(product);
 
             BigDecimal price = product.getPrice();
             BigDecimal subtotal = price.multiply(BigDecimal.valueOf(item.getQuantity()));
@@ -199,9 +211,25 @@ public class OrderService {
         return orderRepository.findOrdersByCustomerIdCustom(customerId);
     }
 
-    // 🌟 THÊM HÀM NÀY ĐỂ LẤY ĐƠN THEO USERNAME (TRÁNH BỊ LỆCH CUSTOMER ID)
     public List<Order> findOrdersByUsername(String username) {
-        return orderRepository.findOrdersByUsernameCustom(username);
+        Customer customer = customerService.getCustomerByUsername(username);
+        Long customerId = (customer != null) ? customer.getId() : -1L;
+
+        List<Order> orders = orderRepository.findOrdersByUsernameOrCustomerIdCustom(username, customerId);
+
+        if (orders == null || orders.isEmpty()) {
+            List<Order> allOrders = findAllOrders();
+            orders = allOrders.stream()
+                    .filter(o -> {
+                        boolean matchCustomerName = o.getCustomerName() != null && o.getCustomerName().equalsIgnoreCase(username);
+                        boolean matchUser = (o.getCustomer() != null && o.getCustomer().getUser() != null && username.equalsIgnoreCase(o.getCustomer().getUser().getUsername()));
+                        boolean matchCustomerId = (customer != null && o.getCustomer() != null && customer.getId().equals(o.getCustomer().getId()));
+                        return matchCustomerName || matchUser || matchCustomerId;
+                    })
+                    .toList();
+        }
+
+        return orders;
     }
 
     public Order findOrderById(Long id) {

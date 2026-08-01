@@ -26,6 +26,9 @@ public class Order {
     private String address;
     private String note;
 
+    // 🌟 THÊM FIELD EMAIL ĐỂ KHÔNG BỊ LỖI LÚC BUILDER() GỌI ORDER
+    private String email;
+
     // 🌟 PHƯƠNG THỨC THANH TOÁN ("COD" hoặc "WALLET")
     private String paymentMethod;
 
@@ -41,7 +44,8 @@ public class Order {
 
     private LocalDateTime orderDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // 🌟 CHUYỂN SANG EAGER ĐỂ TRÁNH LỖI LazyInitializationException LÀM ROLLBACK CSDL
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "customer_id")
     private Customer customer;
 

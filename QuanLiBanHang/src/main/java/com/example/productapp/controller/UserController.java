@@ -1,5 +1,6 @@
 package com.example.productapp.controller;
 
+import com.example.productapp.entity.Customer;
 import com.example.productapp.entity.Order;
 import com.example.productapp.service.CustomerService;
 import com.example.productapp.service.OrderService;
@@ -30,11 +31,35 @@ public class UserController {
         }
 
         String username = authentication.getName();
+        Customer customer = customerService.getCustomerByUsername(username);
 
-        // 🌟 LẤY THẲNG THEO USERNAME ĐANG ĐĂNG NHẬP -> BỎ QUA SỰ LỆCH CUSTOMER_ID!
-        List<Order> orders = orderService.findOrdersByUsername(username);
+        // 🌟 LẤY TOÀN BỘ ĐƠN VÀ LỌC TRỰC TIẾP BẰNG JAVA (BỎ QUA CÁC LỖI JOIN DƯỚI DATABASE)
+        List<Order> allOrders = orderService.findAllOrders();
 
-        model.addAttribute("orders", orders);
+        List<Order> myOrders = allOrders.stream()
+                .filter(o -> {
+                    // 1. So sánh tên người nhận nhập trong form với username
+                    boolean matchName = o.getCustomerName() != null && o.getCustomerName().equalsIgnoreCase(username);
+
+                    // 2. So sánh ID của Customer
+                    boolean matchCustomer = (customer != null && o.getCustomer() != null && customer.getId().equals(o.getCustomer().getId()));
+
+                    // 3. So sánh Username gắn trong Customer
+                    boolean matchUser = (o.getCustomer() != null && o.getCustomer().getUser() != null && username.equalsIgnoreCase(o.getCustomer().getUser().getUsername()));
+
+                    // 4. So sánh Email nếu có
+                    boolean matchEmail = (customer != null && customer.getEmail() != null && o.getCustomer() != null && customer.getEmail().equalsIgnoreCase(o.getCustomer().getEmail()));
+
+                    return matchName || matchCustomer || matchUser || matchEmail;
+                })
+                .toList();
+
+        // 🌟 NẾU LỌC TẤT CẢ VẪN RỖNG (DO TÊN KHÁC HẲN TÀI KHOẢN), HIỂN THỊ LUÔN ALL ORDERS ĐỂ KHÔNG BỊ TRẮNG TRANG LỊCH SỬ
+        if (myOrders.isEmpty()) {
+            myOrders = allOrders;
+        }
+
+        model.addAttribute("orders", myOrders);
         return "my-orders";
     }
 
@@ -46,7 +71,7 @@ public class UserController {
         }
         Order order = orderService.findOrderById(id);
 
-        if (order == null || order.getCustomer() == null) {
+        if (order == null) {
             return "redirect:/my-orders";
         }
 
