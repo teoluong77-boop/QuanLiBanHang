@@ -12,7 +12,7 @@
     <!-- Header Tiêu đề & Nút Quay lại -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1 style="margin: 0;">🛒 Giỏ hàng của bạn</h1>
-        <a class="btn btn-secondary" th:href="@{/products}">Quay lại danh sách</a>
+        <a class="btn btn-secondary" th:href="@{/products}">Quay lại mua sắm</a>
     </div>
 
     <!-- BẢNG DANH SÁCH MÓN HÀNG TRONG GIỎ (Nếu giỏ không trống) -->
@@ -39,28 +39,31 @@
             </td>
 
             <!-- Tên sản phẩm -->
-            <td th:text="${item.product.name}">Tên sản phẩm</td>
+            <td th:text="${item.product.name}" style="font-weight: bold;">Tên sản phẩm</td>
 
-            <!-- Đơn giá -->
+            <!-- Đơn giá (Sử dụng formatDecimal cho BigDecimal) -->
             <td class="price"
-                th:text="|${#numbers.formatInteger(item.product.price, 1, 'POINT')} ₫|">0 ₫</td>
+                th:text="${item.product.price != null ? #numbers.formatDecimal(item.product.price, 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</td>
 
             <!-- Thay đổi số lượng -->
             <td style="text-align: center;">
                 <form th:action="@{/cart/update/{id}(id=${item.product.id})}" method="post" style="display: inline-flex; gap: 5px; align-items: center; justify-content: center; margin: 0;">
-                    <input type="number" name="quantity" th:value="${item.quantity}" min="1" style="width: 60px; padding: 4px; text-align: center;">
-                    <button class="btn btn-secondary" type="submit" style="padding: 4px 8px;">Cập nhật</button>
+                    <input type="number" name="quantity" th:value="${item.quantity}" min="1" style="width: 60px; padding: 4px; text-align: center; border-radius: 4px; border: 1px solid #ccc;">
+                    <button class="btn btn-secondary" type="submit" style="padding: 4px 8px; font-size: 13px; cursor: pointer;">🔄 Cập nhật</button>
                 </form>
             </td>
 
-            <!-- Thành tiền -->
+            <!-- Thành tiền (Sử dụng formatDecimal) -->
             <td class="price"
-                th:text="|${#numbers.formatInteger(item.getTotalPrice(), 1, 'POINT')} ₫|">0 ₫</td>
+                th:text="${item.getTotalPrice() != null ? #numbers.formatDecimal(item.getTotalPrice(), 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</td>
 
             <!-- Xóa món khỏi giỏ -->
             <td class="actions" style="text-align: center;">
                 <form th:action="@{/cart/remove/{id}(id=${item.product.id})}" method="post" style="margin: 0;">
-                    <button class="btn btn-danger" type="submit">Xóa</button>
+                    <button class="btn" style="background-color: #d9534f; color: white; padding: 5px 10px; font-size: 13px; cursor: pointer;" type="submit"
+                            onclick="return confirm('Bạn có muốn bỏ sản phẩm này ra khỏi giỏ hàng?');">
+                        🗑️ Bỏ món
+                    </button>
                 </form>
             </td>
         </tr>
@@ -71,17 +74,17 @@
     <div th:if="${not #lists.isEmpty(cartItems)}" style="margin-top: 25px; text-align: right;">
         <h2 style="color: #d9534f; margin-bottom: 15px;">
             Tổng thanh toán:
-            <span th:text="|${#numbers.formatInteger(totalAmount, 1, 'POINT')} ₫|">0 ₫</span>
+            <span th:text="${totalAmount != null ? #numbers.formatDecimal(totalAmount, 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</span>
         </h2>
-        <a class="btn" style="padding: 12px 24px; font-size: 16px; background-color: #5cb85c; text-decoration: none;" th:href="@{/checkout}">
-            Tiến hành Thanh Toán ➔
+        <a class="btn" style="padding: 12px 24px; font-size: 16px; background-color: #5cb85c; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;" th:href="@{/checkout}">
+            💳 Tiến hành Thanh Toán ➔
         </a>
     </div>
 
     <!-- Thông báo khi Giỏ hàng trống -->
     <div th:if="${#lists.isEmpty(cartItems)}" style="text-align: center; margin: 50px 0;">
         <p class="muted" style="font-size: 18px; margin-bottom: 20px;">Giỏ hàng của bạn đang trống!</p>
-        <a class="btn" th:href="@{/products}">Tiếp tục mua sắm</a>
+        <a class="btn" th:href="@{/products}" style="text-decoration: none; padding: 10px 20px;">Tiếp tục mua sắm</a>
     </div>
 
 </div>

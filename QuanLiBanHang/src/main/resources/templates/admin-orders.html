@@ -39,6 +39,8 @@
             <th>Địa chỉ</th>
             <th>Ngày đặt</th>
             <th>Tổng tiền</th>
+            <th>Thanh toán</th>
+            <th>Trạng thái</th>
             <th>Thao tác</th>
         </tr>
         </thead>
@@ -46,7 +48,7 @@
         <tr th:each="order : ${orders}">
             <td style="text-align: center; font-weight: bold;" th:text="|#${order.id}|">#1</td>
 
-            <!-- Hiển thị Tên Khách Hàng từ order.customerName hoặc order.customer -->
+            <!-- Hiển thị Tên Khách Hàng -->
             <td th:text="${order.customerName != null ? order.customerName : (order.customer != null ? order.customer.name : 'Khách vãng lai')}">Tên KH</td>
 
             <!-- Hiển thị SĐT -->
@@ -61,9 +63,45 @@
             <td class="price"
                 th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount, 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</td>
 
+            <!-- PHƯƠNG THỨC THANH TOÁN -->
             <td style="text-align: center;">
-                <a class="btn btn-secondary" th:href="@{/admin/orders/{id}(id=${order.id})}" style="text-decoration: none;">Xem chi tiết</a>
-                <a class="btn" style="background-color: #0275d8; color: white; text-decoration: none;" th:href="@{/orders/{id}/invoice(id=${order.id})}" target="_blank">🖨️ In Hóa Đơn</a>
+                <span th:if="${order.paymentMethod == 'WALLET'}" style="color: #2563eb; font-weight: bold;">💳 Ví cá nhân</span>
+                <span th:if="${order.paymentMethod == 'COD' or order.paymentMethod == null}" style="color: #059669; font-weight: bold;">💵 Tiền mặt (COD)</span>
+            </td>
+
+            <!-- TRẠNG THÁI ĐƠN HÀNG -->
+            <td style="text-align: center;">
+                <span th:if="${order.status == 'PENDING' or order.status == null}"
+                      style="color: #d97706; font-weight: bold; background: #fef3c7; padding: 4px 8px; border-radius: 4px; font-size: 13px;">
+                    ⏳ Chờ giao hàng
+                </span>
+                <span th:if="${order.status == 'COMPLETED'}"
+                      style="color: #16a34a; font-weight: bold; background: #dcfce7; padding: 4px 8px; border-radius: 4px; font-size: 13px;">
+                    ✅ Đã hoàn thành
+                </span>
+            </td>
+
+            <!-- CỘT THAO TÁC -->
+            <td style="text-align: center; white-space: nowrap;">
+                <!-- NÚT XÁC NHẬN GIAO HÀNG -->
+                <form th:if="${order.status == 'PENDING' or order.status == null}"
+                      th:action="@{/admin/orders/confirm/{id}(id=${order.id})}" method="post" style="display: inline; margin-right: 5px;">
+                    <button class="btn" style="background-color: #16a34a; color: white; padding: 5px 10px; font-size: 13px;" type="submit"
+                            onclick="return confirm('Xác nhận khách đã nhận hàng? Tiền COD sẽ được cộng vào tài khoản Admin!');">
+                        📦 Xác nhận đã giao
+                    </button>
+                </form>
+
+                <a class="btn btn-secondary" th:href="@{/admin/orders/{id}(id=${order.id})}" style="text-decoration: none; padding: 5px 10px; font-size: 13px;">Xem chi tiết</a>
+                <a class="btn" style="background-color: #0275d8; color: white; text-decoration: none; padding: 5px 10px; font-size: 13px;" th:href="@{/orders/{id}/invoice(id=${order.id})}" target="_blank">🖨️ In Hóa Đơn</a>
+
+                <!-- 🌟 NÚT XÓA ĐƠN HÀNG -->
+                <form th:action="@{/admin/orders/delete/{id}(id=${order.id})}" method="post" style="display: inline; margin-left: 5px;">
+                    <button class="btn" style="background-color: #d9534f; color: white; padding: 5px 10px; font-size: 13px; cursor: pointer;" type="submit"
+                            onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này vĩnh viễn không?');">
+                        🗑️ Xóa
+                    </button>
+                </form>
             </td>
         </tr>
         </tbody>

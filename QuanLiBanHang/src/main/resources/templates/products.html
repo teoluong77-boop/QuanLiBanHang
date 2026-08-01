@@ -30,8 +30,16 @@
         <h1 style="margin: 0;">Danh sách sản phẩm</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
 
-            <!-- 🌟 NÚT CHỈ DÀNH CHO KHÁCH MUA HÀNG (ẨN ĐỐI VỚI ADMIN) -->
-            <a class="btn" style="background-color: #f0ad4e; color: white;" th:href="@{/cart}" sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">🛒 Xem Giỏ Hàng</a>
+            <!-- 🌟 NÚT CHỈ DÀNH CHO KHÁCH MUA HÀNG (HIỂN THỊ SỐ LƯỢNG MÓN ĐANG CÓ TRONG GIỎ) -->
+            <a class="btn" style="background-color: #f0ad4e; color: white; font-weight: bold;"
+               th:href="@{/cart}"
+               sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">
+                🛒 Xem Giỏ Hàng
+                <span th:if="${@cartService.getItems().size() > 0}"
+                      th:text="|(${#lists.size(@cartService.getItems())})|"
+                      style="background: #d9534f; color: white; border-radius: 50%; padding: 2px 7px; font-size: 12px; margin-left: 3px;">
+                </span>
+            </a>
 
             <!-- 1. KHÁCH VẮNG LAI (CHƯA ĐĂNG NHẬP) -->
             <div sec:authorize="isAnonymous()" style="display: flex; gap: 10px;">
@@ -40,7 +48,6 @@
 
             <!-- 2. NGƯỜI DÙNG THƯỜNG ĐÃ ĐĂNG NHẬP (USER) -->
             <div sec:authorize="hasAuthority('ROLE_USER') or hasAuthority('USER')" style="display: flex; gap: 10px;">
-                <!-- 🌟 THÊM NÚT VÍ TIỀN VÀO ĐÂY -->
                 <a class="btn" style="background-color: #16a34a; color: white;" th:href="@{/wallet}">💳 Ví tiền</a>
                 <a class="btn" style="background-color: #5bc0de; color: white;" th:href="@{/my-orders}">📜 Đơn hàng của tôi</a>
             </div>
@@ -125,8 +132,9 @@
                 <span th:if="${product.rating == null or product.rating.isBlank()}" class="muted">-</span>
             </td>
 
+            <!-- Format đơn giá bằng formatDecimal cho BigDecimal -->
             <td class="price"
-                th:text="|${#numbers.formatInteger(product.price, 1, 'POINT')} ₫|">0 ₫</td>
+                th:text="${product.price != null ? #numbers.formatDecimal(product.price, 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</td>
 
             <td style="text-align: center;">
                 <span th:if="${product.quantity != null and product.quantity > 5}" style="color: #28a745; font-weight: bold;" th:text="${product.quantity}">10</span>
@@ -137,10 +145,12 @@
 
             <td><a th:href="@{/products/{id}(id=${product.id})}">Xem</a></td>
 
-            <!-- Nút Thêm vào giỏ hàng (Ai mua cũng được, trừ Admin) -->
+            <!-- Nút Thêm vào giỏ hàng -->
             <td sec:authorize="!hasAnyAuthority('ADMIN', 'ROLE_ADMIN')">
                 <form th:action="@{/cart/add/{id}(id=${product.id})}" method="post" style="margin:0;">
-                    <button class="btn" style="background-color: #5cb85c;" type="submit" th:disabled="${product.quantity != null and product.quantity <= 0}">+ Thêm giỏ</button>
+                    <button class="btn" style="background-color: #5cb85c; color: white; cursor: pointer;" type="submit" th:disabled="${product.quantity != null and product.quantity <= 0}">
+                        + Thêm giỏ
+                    </button>
                 </form>
             </td>
 

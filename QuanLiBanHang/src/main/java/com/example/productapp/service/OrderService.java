@@ -63,16 +63,19 @@ public class OrderService {
 
         // 2. KHỞI TẠO ĐƠN HÀNG VỚI TỔNG TIỀN BIGDECIMAL
         BigDecimal totalAmount = cartService.getTotalAmount();
+        String formattedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank()) ? paymentMethod.toUpperCase().trim() : "COD";
 
-        // 🌟 BƯỚC 2 & 3: XỬ LÝ THANH TOÁN BẰNG VÍ TIỀN (WALLET)
-        if ("WALLET".equalsIgnoreCase(paymentMethod)) {
+        // Mặc định đơn mới (đặc biệt là COD) phải là PENDING
+        String orderStatus = "PENDING";
+
+        // 3. XỬ LÝ THANH TOÁN BẰNG VÍ TIỀN (WALLET)
+        if ("WALLET".equals(formattedPaymentMethod)) {
             if (username == null || username.isBlank()) {
                 throw new RuntimeException("Bạn phải đăng nhập tài khoản để sử dụng phương thức thanh toán bằng Ví tiền!");
             }
 
             BigDecimal currentBalance = customer.getBalance() != null ? customer.getBalance() : BigDecimal.ZERO;
 
-            // KIỂM TRA SỐ DƯ
             if (currentBalance.compareTo(totalAmount) < 0) {
                 throw new RuntimeException("Tài khoản của bạn không đủ tiền! Vui lòng nạp thêm tiền vào ví hoặc chọn phương thức COD.");
             }
@@ -81,7 +84,7 @@ public class OrderService {
             customer.setBalance(currentBalance.subtract(totalAmount));
             customerRepository.save(customer);
 
-            // CỘNG TIỀN CHO TÀI KHOẢN ADMIN / CHỦ SHOP
+            // CỘNG TIỀN VÀO VÍ ADMIN
             User adminUser = userRepository.findAll().stream()
                     .filter(u -> "ROLE_ADMIN".equalsIgnoreCase(u.getRole()) || "ADMIN".equalsIgnoreCase(u.getRole()))
                     .findFirst().orElse(null);
@@ -91,6 +94,8 @@ public class OrderService {
                 adminUser.setBalance(adminBalance.add(totalAmount));
                 userRepository.save(adminUser);
             }
+
+            orderStatus = "COMPLETED";
         }
 
         Order order = Order.builder()
@@ -98,17 +103,18 @@ public class OrderService {
                 .phoneNumber(phoneNumber)
                 .address(address)
                 .note(note)
-                .paymentMethod(paymentMethod != null ? paymentMethod : "COD")
+                .paymentMethod(formattedPaymentMethod)
+                .status(orderStatus)
+                .deleted(false) // Mặc định chưa bị xóa
                 .totalAmount(totalAmount)
                 .orderDate(LocalDateTime.now())
                 .customer(customer)
                 .build();
 
-        // 3. XỬ LÝ TỪNG CHI TIẾT ĐƠN HÀNG (ORDER DETAIL)
+        // 4. XỬ LÝ TỪNG CHI TIẾT ĐƠN HÀNG
         for (CartItem item : cartItems) {
             Product product = item.getProduct();
 
-            // Kiểm tra và trừ tồn kho
             if (product.getQuantity() != null) {
                 int newQuantity = product.getQuantity() - item.getQuantity();
                 if (newQuantity < 0) {
@@ -137,20 +143,58 @@ public class OrderService {
         return savedOrder;
     }
 
+    /** 🌟 XÁC NHẬN ĐÃ GIAO HÀNG COD (CỘNG VÀO VÍ ADMIN + CỘNG VÀO DOANH THU) */
+    @Transactional
+    public void confirmOrderDelivery(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng ID: " + orderId));
+
+        if ("PENDING".equalsIgnoreCase(order.getStatus())) {
+            order.setStatus("COMPLETED");
+
+            if ("COD".equalsIgnoreCase(order.getPaymentMethod())) {
+                User adminUser = userRepository.findAll().stream()
+                        .filter(u -> "ROLE_ADMIN".equalsIgnoreCase(u.getRole()) || "ADMIN".equalsIgnoreCase(u.getRole()))
+                        .findFirst().orElse(null);
+
+                if (adminUser != null) {
+                    BigDecimal adminBalance = adminUser.getBalance() != null ? adminUser.getBalance() : BigDecimal.ZERO;
+                    adminUser.setBalance(adminBalance.add(order.getTotalAmount()));
+                    userRepository.save(adminUser);
+                }
+            }
+
+            orderRepository.save(order);
+        }
+    }
+
+    /** 🌟 XÓA MỀM ĐƠN HÀNG: ĐƠN ẨN KHỎI BẢNG NHƯNG BẢN GHI VÀ DOANH THU VẪN LƯU VĨNH VIỄN TRONG DB */
+    @Transactional
+    public void deleteOrderById(Long id) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order != null) {
+            order.setDeleted(true);
+            orderRepository.save(order);
+        }
+    }
+
+    /** 🌟 CHỈ LẤY CÁC ĐƠN CHƯA XÓA ĐỂ HIỂN THỊ LÊN BẢNG */
     public List<Order> findAllOrders() {
-        return orderRepository.findAll();
+        return orderRepository.findByDeletedFalseOrDeletedIsNull();
     }
 
     public List<Order> findOrdersByCustomerId(Long customerId) {
-        return orderRepository.findByCustomerIdOrderByOrderDateDesc(customerId);
+        return orderRepository.findByCustomerIdAndDeletedFalseOrCustomerIdAndDeletedIsNullOrderByOrderDateDesc(customerId, customerId);
     }
 
     public Order findOrderById(Long id) {
         return orderRepository.findById(id).orElse(null);
     }
 
+    /** 🌟 QUÉT TOÀN BỘ CÁC ĐƠN COMPLETED TRONG DB (KỂ CẢ ĐƠN ĐÃ ẨN) -> DOANH THU KHÔNG BAO GIỜ TỤT */
     public BigDecimal getTotalRevenue() {
         return orderRepository.findAll().stream()
+                .filter(order -> "COMPLETED".equalsIgnoreCase(order.getStatus()))
                 .map(Order::getTotalAmount)
                 .filter(amount -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

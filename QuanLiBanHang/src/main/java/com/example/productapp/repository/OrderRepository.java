@@ -10,6 +10,12 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    // 🌟 LẤY TẤT CẢ ĐƠN HÀNG CHƯA XÓA (DELETED IS FALSE HOẶC NULL)
+    List<Order> findByDeletedFalseOrDeletedIsNull();
+
+    // 🌟 LẤY ĐƠN HÀNG THEO CUSTOMER ID CHƯA XÓA
+    List<Order> findByCustomerIdAndDeletedFalseOrCustomerIdAndDeletedIsNullOrderByOrderDateDesc(Long customerId1, Long customerId2);
+
     // Tìm danh sách đơn hàng theo Customer ID và sắp xếp theo ngày giảm dần
     List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
 

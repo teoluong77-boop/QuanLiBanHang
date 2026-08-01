@@ -37,7 +37,7 @@ public class AdminController {
         model.addAttribute("productCount", products.size());
         model.addAttribute("orderCount", orderService.findAllOrders().size());
 
-        // 🌟 LẤY DOANH THU THẬT BẰNG BIGDECIMAL (Truyền trực tiếp BigDecimal hoặc .longValue())
+        // 🌟 LẤY DOANH THU THẬT BẰNG BIGDECIMAL
         BigDecimal totalRevenue = orderService.getTotalRevenue();
         model.addAttribute("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
 

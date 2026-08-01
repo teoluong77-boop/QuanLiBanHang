@@ -29,6 +29,13 @@ public class Order {
     // 🌟 PHƯƠNG THỨC THANH TOÁN ("COD" hoặc "WALLET")
     private String paymentMethod;
 
+    // 🌟 TRẠNG THÁI ĐƠN HÀNG ("PENDING": Đang xử lý, "COMPLETED": Đã giao/Đã thanh toán)
+    private String status;
+
+    // 🌟 CỜ XÓA MỀM (true: Đã xóa/ẩn, false: Đang hiển thị)
+    @Builder.Default
+    private Boolean deleted = false;
+
     @Column(precision = 15, scale = 2)
     private BigDecimal totalAmount;
 

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.math.BigDecimal;
@@ -25,8 +26,6 @@ public class AdminOrderController {
     @GetMapping
     public String listOrders(Model model) {
         List<Order> orders = orderService.findAllOrders();
-
-        // 🌟 ĐÃ ĐỔI TỪ DOUBLE SANG BIGDECIMAL
         BigDecimal totalRevenue = orderService.getTotalRevenue();
 
         model.addAttribute("orders", orders);
@@ -43,5 +42,19 @@ public class AdminOrderController {
         }
         model.addAttribute("order", order);
         return "admin-order-detail";
+    }
+
+    /** 🌟 XỬ LÝ BẤM NÚT XÁC NHẬN ĐÃ GIAO HÀNG (CỘNG TIỀN COD VÀO VÍ ADMIN) */
+    @PostMapping("/confirm/{id}")
+    public String confirmOrderDelivery(@PathVariable("id") Long id) {
+        orderService.confirmOrderDelivery(id);
+        return "redirect:/admin/orders";
+    }
+
+    /** 🌟 XỬ LÝ BẤM NÚT XÓA ĐƠN HÀNG */
+    @PostMapping("/delete/{id}")
+    public String deleteOrder(@PathVariable("id") Long id) {
+        orderService.deleteOrderById(id);
+        return "redirect:/admin/orders";
     }
 }

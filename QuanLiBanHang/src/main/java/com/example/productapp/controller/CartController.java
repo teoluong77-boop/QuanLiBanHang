@@ -27,15 +27,17 @@ public class CartController {
         return "cart";
     }
 
-    /** Thêm vào giỏ hàng */
+    /** Thêm vào giỏ hàng (Sau khi thêm sẽ tự ở lại trang cũ để chọn tiếp món khác) */
     @PostMapping("/add/{id}")
     public String addToCart(@PathVariable("id") Long id,
-                            @RequestParam(name = "quantity", defaultValue = "1") int quantity) {
+                            @RequestParam(name = "quantity", defaultValue = "1") int quantity,
+                            @RequestHeader(value = "Referer", required = false) String referer) {
         Product product = productService.findById(id);
         if (product != null) {
             cartService.addProduct(product, quantity);
         }
-        return "redirect:/cart";
+        // Quay lại đúng trang khách đang đứng (trang sản phẩm) thay vì bắt nhảy ngay vào giỏ
+        return "redirect:" + (referer != null ? referer : "/products");
     }
 
     /** Cập nhật số lượng */
