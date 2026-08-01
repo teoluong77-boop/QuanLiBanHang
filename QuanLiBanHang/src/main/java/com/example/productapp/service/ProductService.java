@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
@@ -19,14 +20,17 @@ public class ProductService {
     private ProductRepository productRepository;
 
     @Autowired
-    private OrderDetailRepository orderDetailRepository; // 🌟 Tiêm OrderDetailRepository xử lý khóa ngoại
+    private OrderDetailRepository orderDetailRepository;
 
-    /** Danh sach tat ca san pham tu CSDL MySQL */
+    @Autowired
+    private OrderService orderService; // 🌟 TIÊM ORDER SERVICE ĐỂ TRỪ TIỀN DOANH THU/VÍ
+
+    /** Danh sách tất cả sản phẩm từ CSDL MySQL */
     public List<Product> findAll() {
         return productRepository.findAll();
     }
 
-    /** Tim kiem san pham theo ten (khong phan biet hoa/thuong) */
+    /** Tìm kiếm sản phẩm theo tên */
     public List<Product> search(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return findAll();
@@ -37,31 +41,51 @@ public class ProductService {
                 .toList();
     }
 
-    /** Tim san pham theo id (Long), tra ve null neu khong co */
+    /** Tìm sản phẩm theo id */
     public Product findById(Long id) {
         return productRepository.findById(id).orElse(null);
     }
 
-    /** Them hoac cap nhat san pham vao CSDL */
+    /** 🌟 THÊM SẢN PHẨM MỚI VÀ TRỪ TIỀN VỐN NHẬP HÀNG TRỰC TIẾP VÀO DOANH THU/VÍ ADMIN */
+    @Transactional
     public Product add(Product product) {
+        // Chỉ trừ tiền vốn khi TẠO SẢN PHẨM MỚI (Chưa có ID)
+        if (product.getId() == null) {
+            BigDecimal importPrice = product.getImportPrice() != null ? product.getImportPrice() : BigDecimal.ZERO;
+            int quantity = product.getQuantity() != null ? product.getQuantity() : 0;
+
+            // Tính Tổng tiền vốn nhập = Giá nhập x Số lượng
+            BigDecimal totalImportCost = importPrice.multiply(BigDecimal.valueOf(quantity));
+
+            if (totalImportCost.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal currentRevenue = orderService.getTotalRevenue();
+
+                // KIỂM TRA SỐ DƯ DOANH THU/VÍ HIỆN CÓ
+                if (currentRevenue.compareTo(totalImportCost) < 0) {
+                    throw new RuntimeException("Số dư Ví/Doanh thu không đủ để nhập lô hàng này! Cần vốn: "
+                            + totalImportCost + " ₫ nhưng ví chỉ có: " + currentRevenue + " ₫");
+                }
+
+                // 🌟 GỌI ORDER SERVICE TRỪ TIỀN TRỰC TIẾP -> CON SỐ TRÊN GIAO DIỆN SẼ TỤT XUỐNG NGAY!
+                orderService.deductRevenue(totalImportCost);
+            }
+        }
+
         return productRepository.save(product);
     }
 
-    /** Xoa san pham theo id */
-    @Transactional // 🌟 BẮT BỘC DÙNG @Transactional ĐỂ XÓA LIÊN BẢNG
+    /** Xóa sản phẩm theo id */
+    @Transactional
     public boolean deleteById(Long id) {
         if (productRepository.existsById(id)) {
-            // Step 1: Xóa tất cả các chi tiết đơn hàng chứa sản phẩm này trước
             orderDetailRepository.deleteByProductId(id);
-
-            // Step 2: Xóa sản phẩm ra khỏi DB
             productRepository.deleteById(id);
             return true;
         }
         return false;
     }
 
-    /** Format gia tien theo VN, vi du "15.000.000 ₫" */
+    /** Format giá tiền theo VN */
     public String formatPrice(double price) {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
         symbols.setGroupingSeparator('.');

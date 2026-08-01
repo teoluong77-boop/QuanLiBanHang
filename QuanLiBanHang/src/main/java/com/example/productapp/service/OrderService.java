@@ -21,6 +21,9 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CartService cartService;
 
+    // 🌟 BIẾN LƯU TỔNG TIỀN VỐN NHẬP HÀNG ĐÃ TRỪ
+    private BigDecimal totalDeductedImportCost = BigDecimal.ZERO;
+
     public OrderService(OrderRepository orderRepository,
                         ProductRepository productRepository,
                         CustomerRepository customerRepository,
@@ -31,6 +34,13 @@ public class OrderService {
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
         this.cartService = cartService;
+    }
+
+    /** 🌟 HÀM TRỪ TIỀN KHI ADMIN NHẬP HÀNG MỚI */
+    public void deductRevenue(BigDecimal amount) {
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            this.totalDeductedImportCost = this.totalDeductedImportCost.add(amount);
+        }
     }
 
     @Transactional
@@ -65,7 +75,6 @@ public class OrderService {
         BigDecimal totalAmount = cartService.getTotalAmount();
         String formattedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank()) ? paymentMethod.toUpperCase().trim() : "COD";
 
-        // Mặc định đơn mới (đặc biệt là COD) phải là PENDING
         String orderStatus = "PENDING";
 
         // 3. XỬ LÝ THANH TOÁN BẰNG VÍ TIỀN (WALLET)
@@ -105,7 +114,7 @@ public class OrderService {
                 .note(note)
                 .paymentMethod(formattedPaymentMethod)
                 .status(orderStatus)
-                .deleted(false) // Mặc định chưa bị xóa
+                .deleted(false)
                 .totalAmount(totalAmount)
                 .orderDate(LocalDateTime.now())
                 .customer(customer)
@@ -143,7 +152,7 @@ public class OrderService {
         return savedOrder;
     }
 
-    /** 🌟 XÁC NHẬN ĐÃ GIAO HÀNG COD (CỘNG VÀO VÍ ADMIN + CỘNG VÀO DOANH THU) */
+    /** 🌟 XÁC NHẬN ĐÃ GIAO HÀNG COD */
     @Transactional
     public void confirmOrderDelivery(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -168,7 +177,7 @@ public class OrderService {
         }
     }
 
-    /** 🌟 XÓA MỀM ĐƠN HÀNG: ĐƠN ẨN KHỎI BẢNG NHƯNG BẢN GHI VÀ DOANH THU VẪN LƯU VĨNH VIỄN TRONG DB */
+    /** 🌟 XÓA MỀM ĐƠN HÀNG */
     @Transactional
     public void deleteOrderById(Long id) {
         Order order = orderRepository.findById(id).orElse(null);
@@ -178,7 +187,6 @@ public class OrderService {
         }
     }
 
-    /** 🌟 CHỈ LẤY CÁC ĐƠN CHƯA XÓA ĐỂ HIỂN THỊ LÊN BẢNG */
     public List<Order> findAllOrders() {
         return orderRepository.findByDeletedFalseOrDeletedIsNull();
     }
@@ -191,12 +199,18 @@ public class OrderService {
         return orderRepository.findById(id).orElse(null);
     }
 
-    /** 🌟 QUÉT TOÀN BỘ CÁC ĐƠN COMPLETED TRONG DB (KỂ CẢ ĐƠN ĐÃ ẨN) -> DOANH THU KHÔNG BAO GIỜ TỤT */
+    /** 🌟 TÍNH TỔNG DOANH THU = (TỔNG CÁC ĐƠN COMPLETED) - (TỔNG TIỀN VỐN ĐÃ TRỪ KHI NHẬP HÀNG) */
     public BigDecimal getTotalRevenue() {
-        return orderRepository.findAll().stream()
+        BigDecimal totalCompletedOrders = orderRepository.findAll().stream()
                 .filter(order -> "COMPLETED".equalsIgnoreCase(order.getStatus()))
                 .map(Order::getTotalAmount)
                 .filter(amount -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Trừ đi chi phí vốn nhập hàng
+        BigDecimal netRevenue = totalCompletedOrders.subtract(this.totalDeductedImportCost);
+
+        // Nếu âm thì trả về 0 cho đẹp mắt
+        return netRevenue.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : netRevenue;
     }
 }

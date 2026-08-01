@@ -2,6 +2,7 @@ package com.example.productapp.controller;
 
 import com.example.productapp.entity.Product;
 import com.example.productapp.repository.CategoryRepository;
+import com.example.productapp.service.OrderService;
 import com.example.productapp.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.*;
 import java.util.List;
 
@@ -22,10 +24,14 @@ public class ProductController {
 
     private final ProductService productService;
     private final CategoryRepository categoryRepository;
+    private final OrderService orderService; // 🌟 TIÊM ORDER SERVICE ĐỂ ĐỒNG BỘ DOANH THU CỦA ADMIN
 
-    public ProductController(ProductService productService, CategoryRepository categoryRepository) {
+    public ProductController(ProductService productService,
+                             CategoryRepository categoryRepository,
+                             OrderService orderService) {
         this.productService = productService;
         this.categoryRepository = categoryRepository;
+        this.orderService = orderService;
     }
 
     /** Danh sách sản phẩm, tìm kiếm & lọc theo danh mục */
@@ -35,7 +41,6 @@ public class ProductController {
                                Model model) {
         List<Product> products = productService.search(keyword);
 
-        // Lọc danh sách theo Category nếu người dùng chọn danh mục
         if (categoryId != null) {
             products = products.stream()
                     .filter(p -> p.getCategory() != null && p.getCategory().getId().equals(categoryId))
@@ -49,11 +54,16 @@ public class ProductController {
         return "products";
     }
 
-    /** Form thêm sản phẩm */
+    /** 🌟 FORM THÊM SẢN PHẨM: ĐỒNG BỘ CÙNG CON SỐ TỔNG DOANH THU */
     @GetMapping("/add")
     public String showAddForm(Model model) {
         model.addAttribute("product", new Product());
         model.addAttribute("categories", categoryRepository.findAll());
+
+        // Lấy con số Doanh thu từ OrderService để hiển thị thành Số dư Ví Admin (Đồng bộ 100%)
+        BigDecimal adminBalance = orderService.getTotalRevenue();
+        model.addAttribute("adminBalance", adminBalance);
+
         return "add-product";
     }
 
@@ -65,8 +75,11 @@ public class ProductController {
                              HttpServletRequest request,
                              Model model) throws IOException {
 
+        BigDecimal adminBalance = orderService.getTotalRevenue();
+
         if (bindingResult.hasErrors()) {
             model.addAttribute("categories", categoryRepository.findAll());
+            model.addAttribute("adminBalance", adminBalance);
             return "add-product";
         }
 
@@ -87,7 +100,15 @@ public class ProductController {
             }
         }
 
-        productService.add(product);
+        // 🌟 BẮT NGOẠI LỆ NẾU TỔNG DOANH THU/VÍ KHÔNG ĐỦ TIỀN NHẬP HÀNG
+        try {
+            productService.add(product);
+        } catch (RuntimeException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("categories", categoryRepository.findAll());
+            model.addAttribute("adminBalance", adminBalance);
+            return "add-product";
+        }
 
         String referer = request.getHeader("Referer");
         if (referer != null && referer.contains("/admin")) {
@@ -125,6 +146,7 @@ public class ProductController {
         Product existingProduct = productService.findById(id);
         if (existingProduct != null) {
             existingProduct.setName(product.getName());
+            existingProduct.setImportPrice(product.getImportPrice()); // Cập nhật Giá nhập
             existingProduct.setPrice(product.getPrice());
             existingProduct.setQuantity(product.getQuantity());
             existingProduct.setCategory(product.getCategory());

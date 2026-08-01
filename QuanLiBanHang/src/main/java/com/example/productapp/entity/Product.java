@@ -26,9 +26,15 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
-    // 🌟 ĐÃ ĐỔI SANG BIGDECIMAL THEO GÓP Ý CỦA THẦY
-    @NotNull(message = "Giá sản phẩm không được để trống")
-    @DecimalMin(value = "1.0", message = "Giá phải lớn hơn hoặc bằng 1")
+    // 🌟 GIÁ NHẬP VỐN (Dùng để tính tiền trừ ví Admin khi nhập kho)
+    @NotNull(message = "Giá nhập không được để trống")
+    @DecimalMin(value = "1.0", message = "Giá nhập phải lớn hơn hoặc bằng 1")
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal importPrice;
+
+    // 🌟 GIÁ BÁN LẺ (Cho khách mua)
+    @NotNull(message = "Giá bán không được để trống")
+    @DecimalMin(value = "1.0", message = "Giá bán phải lớn hơn hoặc bằng 1")
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 

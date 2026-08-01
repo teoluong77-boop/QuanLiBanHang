@@ -27,14 +27,27 @@
             </select>
         </div>
 
+        <!-- 🌟 BỔ SUNG: GIÁ NHẬP VỐN -->
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Giá bán (VNĐ) (*):</label>
-            <input type="number" th:field="*{price}" required step="1000" min="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #d9534f;">💵 Giá nhập vốn (VNĐ) (*):</label>
+            <input type="number" id="importPrice" th:field="*{importPrice}" required step="1000" min="1" placeholder="Ví dụ: 15000" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <small style="color: #6c757d;">Số tiền này sẽ được nhân với số lượng để trừ trực tiếp vào Ví tiền Admin khi tạo mới.</small>
         </div>
 
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Số lượng tồn kho (*):</label>
-            <input type="number" th:field="*{quantity}" required min="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #28a745;">🏷️ Giá bán cho khách (VNĐ) (*):</label>
+            <input type="number" th:field="*{price}" required step="1000" min="1" placeholder="Ví dụ: 20000" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">📦 Số lượng nhập kho (*):</label>
+            <input type="number" id="quantity" th:field="*{quantity}" required min="0" placeholder="Ví dụ: 10" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <!-- KHỐI HỌC VỐN TỰ ĐỘNG TÍNH TOÁN (Hiển thị khi tạo mới) -->
+        <div th:if="${product.id == null}" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
+            💸 Tổng tiền vốn nhập hàng (Trừ Ví Admin):
+            <span id="totalImportCost" style="color: #d9534f; font-size: 16px;">0 ₫</span>
         </div>
 
         <div style="margin-bottom: 15px;">
@@ -48,5 +61,25 @@
         </div>
     </form>
 </div>
+
+<!-- SCRIPT TỰ ĐỘNG TÍNH TỔNG TIỀN VỐN KHI ADMIN NHẬP SỐ LƯỢNG VÀ GIÁ NHẬP -->
+<script>
+    const importPriceInput = document.getElementById('importPrice');
+    const quantityInput = document.getElementById('quantity');
+    const totalCostSpan = document.getElementById('totalImportCost');
+
+    function calculateTotalCost() {
+        if (!totalCostSpan) return;
+        const price = parseFloat(importPriceInput.value) || 0;
+        const qty = parseInt(quantityInput.value) || 0;
+        const total = price * qty;
+        totalCostSpan.textContent = total.toLocaleString('vi-VN') + ' ₫';
+    }
+
+    if (importPriceInput && quantityInput) {
+        importPriceInput.addEventListener('input', calculateTotalCost);
+        quantityInput.addEventListener('input', calculateTotalCost);
+    }
+</script>
 </body>
 </html>
