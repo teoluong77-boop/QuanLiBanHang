@@ -1,8 +1,7 @@
 package com.example.productapp.controller;
 
-import com.example.productapp.entity.Customer;
 import com.example.productapp.entity.Order;
-import com.example.productapp.repository.CustomerRepository;
+import com.example.productapp.service.CustomerService;
 import com.example.productapp.service.OrderService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -16,11 +15,11 @@ import java.util.List;
 public class UserController {
 
     private final OrderService orderService;
-    private final CustomerRepository customerRepository;
+    private final CustomerService customerService;
 
-    public UserController(OrderService orderService, CustomerRepository customerRepository) {
+    public UserController(OrderService orderService, CustomerService customerService) {
         this.orderService = orderService;
-        this.customerRepository = customerRepository;
+        this.customerService = customerService;
     }
 
     /** Xem lịch sử đơn hàng của tôi */
@@ -30,16 +29,10 @@ public class UserController {
             return "redirect:/login";
         }
 
-        // Tìm customer theo tên tài khoản hoặc thông tin liên quan (ở đây ví dụ tìm theo username/SĐT)
         String username = authentication.getName();
-        Customer customer = customerRepository.findByPhoneNumber(username).orElse(null);
 
-        List<Order> orders;
-        if (customer != null) {
-            orders = orderService.findOrdersByCustomerId(customer.getId());
-        } else {
-            orders = List.of();
-        }
+        // 🌟 LẤY THẲNG THEO USERNAME ĐANG ĐĂNG NHẬP -> BỎ QUA SỰ LỆCH CUSTOMER_ID!
+        List<Order> orders = orderService.findOrdersByUsername(username);
 
         model.addAttribute("orders", orders);
         return "my-orders";
@@ -53,7 +46,6 @@ public class UserController {
         }
         Order order = orderService.findOrderById(id);
 
-        // 🌟 ĐÃ ĐỔI TỪ order.getUser() SANG order.getCustomer()
         if (order == null || order.getCustomer() == null) {
             return "redirect:/my-orders";
         }

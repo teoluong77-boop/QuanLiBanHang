@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,23 +21,24 @@ public class OrderService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final CartService cartService;
-
-    // 🌟 BIẾN LƯU TỔNG TIỀN VỐN NHẬP HÀNG ĐÃ TRỪ
-    private BigDecimal totalDeductedImportCost = BigDecimal.ZERO;
+    private final CustomerService customerService;
 
     public OrderService(OrderRepository orderRepository,
                         ProductRepository productRepository,
                         CustomerRepository customerRepository,
                         UserRepository userRepository,
-                        CartService cartService) {
+                        CartService cartService,
+                        CustomerService customerService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
         this.cartService = cartService;
+        this.customerService = customerService;
     }
 
-    /** 🌟 HÀM TRỪ TIỀN KHI ADMIN NHẬP HÀNG MỚI */
+    private BigDecimal totalDeductedImportCost = BigDecimal.ZERO;
+
     public void deductRevenue(BigDecimal amount) {
         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
             this.totalDeductedImportCost = this.totalDeductedImportCost.add(amount);
@@ -46,59 +48,64 @@ public class OrderService {
     @Transactional
     public Order createOrder(String customerName, String phoneNumber, String address, String note, String email, String paymentMethod, String username) {
         List<CartItem> cartItems = cartService.getItems();
-        if (cartItems.isEmpty()) {
-            return null;
+
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new RuntimeException("Giỏ hàng của bạn đang rỗng!");
         }
 
-        // 1. TẠO HOẶC TÌM KHÁCH HÀNG (CUSTOMER)
+        User loggedInUser = null;
         Customer customer = null;
+
         if (username != null && !username.isBlank()) {
-            User loggedInUser = userRepository.findByUsername(username).orElse(null);
-            if (loggedInUser != null) {
-                customer = customerRepository.findByUser(loggedInUser).orElse(null);
-            }
+            loggedInUser = userRepository.findByUsername(username).orElse(null);
+            customer = customerService.getCustomerByUsername(username);
         }
 
         if (customer == null) {
-            customer = customerRepository.findByPhoneNumber(phoneNumber)
-                    .orElseGet(() -> Customer.builder()
-                            .name(customerName)
-                            .phoneNumber(phoneNumber)
-                            .address(address)
-                            .email(email)
-                            .build());
+            customer = Customer.builder()
+                    .name(customerName)
+                    .phoneNumber(phoneNumber)
+                    .address(address)
+                    .email(email)
+                    .build();
+            customer = customerRepository.save(customer);
+        } else {
+            customer.setName(customerName);
+            customer.setAddress(address);
+            if (phoneNumber != null && !phoneNumber.isBlank()) {
+                customer.setPhoneNumber(phoneNumber);
+            }
+            customer = customerRepository.save(customer);
         }
 
-        customer = customerRepository.save(customer);
-
-        // 2. KHỞI TẠO ĐƠN HÀNG VỚI TỔNG TIỀN BIGDECIMAL
         BigDecimal totalAmount = cartService.getTotalAmount();
         String formattedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank()) ? paymentMethod.toUpperCase().trim() : "COD";
-
         String orderStatus = "PENDING";
 
-        // 3. XỬ LÝ THANH TOÁN BẰNG VÍ TIỀN (WALLET)
         if ("WALLET".equals(formattedPaymentMethod)) {
-            if (username == null || username.isBlank()) {
+            if (loggedInUser == null) {
                 throw new RuntimeException("Bạn phải đăng nhập tài khoản để sử dụng phương thức thanh toán bằng Ví tiền!");
             }
 
-            BigDecimal currentBalance = customer.getBalance() != null ? customer.getBalance() : BigDecimal.ZERO;
+            BigDecimal currentBalance = (customer.getBalance() != null) ? customer.getBalance()
+                    : (loggedInUser.getBalance() != null ? loggedInUser.getBalance() : BigDecimal.ZERO);
 
             if (currentBalance.compareTo(totalAmount) < 0) {
-                throw new RuntimeException("Tài khoản của bạn không đủ tiền! Vui lòng nạp thêm tiền vào ví hoặc chọn phương thức COD.");
+                throw new RuntimeException("Ví tiền không đủ! Bạn cần " + totalAmount + " ₫ nhưng ví chỉ có " + currentBalance + " ₫.");
             }
 
-            // TRỪ TIỀN KHÁCH HÀNG
-            customer.setBalance(currentBalance.subtract(totalAmount));
+            BigDecimal newBalance = currentBalance.subtract(totalAmount);
+            customer.setBalance(newBalance);
             customerRepository.save(customer);
 
-            // CỘNG TIỀN VÀO VÍ ADMIN
+            loggedInUser.setBalance(newBalance);
+            userRepository.save(loggedInUser);
+
             User adminUser = userRepository.findAll().stream()
                     .filter(u -> "ROLE_ADMIN".equalsIgnoreCase(u.getRole()) || "ADMIN".equalsIgnoreCase(u.getRole()))
                     .findFirst().orElse(null);
 
-            if (adminUser != null) {
+            if (adminUser != null && !adminUser.getId().equals(loggedInUser.getId())) {
                 BigDecimal adminBalance = adminUser.getBalance() != null ? adminUser.getBalance() : BigDecimal.ZERO;
                 adminUser.setBalance(adminBalance.add(totalAmount));
                 userRepository.save(adminUser);
@@ -118,11 +125,13 @@ public class OrderService {
                 .totalAmount(totalAmount)
                 .orderDate(LocalDateTime.now())
                 .customer(customer)
+                .orderDetails(new ArrayList<>())
                 .build();
 
-        // 4. XỬ LÝ TỪNG CHI TIẾT ĐƠN HÀNG
         for (CartItem item : cartItems) {
-            Product product = item.getProduct();
+            Long productId = item.getProduct().getId();
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Sản phẩm ID " + productId + " không tồn tại!"));
 
             if (product.getQuantity() != null) {
                 int newQuantity = product.getQuantity() - item.getQuantity();
@@ -152,13 +161,10 @@ public class OrderService {
         return savedOrder;
     }
 
-    /** 🌟 XÁC NHẬN ĐÃ GIAO HÀNG COD */
     @Transactional
     public void confirmOrderDelivery(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng ID: " + orderId));
-
-        if ("PENDING".equalsIgnoreCase(order.getStatus())) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order != null && "PENDING".equalsIgnoreCase(order.getStatus())) {
             order.setStatus("COMPLETED");
 
             if ("COD".equalsIgnoreCase(order.getPaymentMethod())) {
@@ -172,12 +178,10 @@ public class OrderService {
                     userRepository.save(adminUser);
                 }
             }
-
             orderRepository.save(order);
         }
     }
 
-    /** 🌟 XÓA MỀM ĐƠN HÀNG */
     @Transactional
     public void deleteOrderById(Long id) {
         Order order = orderRepository.findById(id).orElse(null);
@@ -188,18 +192,22 @@ public class OrderService {
     }
 
     public List<Order> findAllOrders() {
-        return orderRepository.findByDeletedFalseOrDeletedIsNull();
+        return orderRepository.findByDeletedFalseOrDeletedIsNullOrderByOrderDateDesc();
     }
 
     public List<Order> findOrdersByCustomerId(Long customerId) {
-        return orderRepository.findByCustomerIdAndDeletedFalseOrCustomerIdAndDeletedIsNullOrderByOrderDateDesc(customerId, customerId);
+        return orderRepository.findOrdersByCustomerIdCustom(customerId);
+    }
+
+    // 🌟 THÊM HÀM NÀY ĐỂ LẤY ĐƠN THEO USERNAME (TRÁNH BỊ LỆCH CUSTOMER ID)
+    public List<Order> findOrdersByUsername(String username) {
+        return orderRepository.findOrdersByUsernameCustom(username);
     }
 
     public Order findOrderById(Long id) {
         return orderRepository.findById(id).orElse(null);
     }
 
-    /** 🌟 TÍNH TỔNG DOANH THU = (TỔNG CÁC ĐƠN COMPLETED) - (TỔNG TIỀN VỐN ĐÃ TRỪ KHI NHẬP HÀNG) */
     public BigDecimal getTotalRevenue() {
         BigDecimal totalCompletedOrders = orderRepository.findAll().stream()
                 .filter(order -> "COMPLETED".equalsIgnoreCase(order.getStatus()))
@@ -207,10 +215,7 @@ public class OrderService {
                 .filter(amount -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Trừ đi chi phí vốn nhập hàng
         BigDecimal netRevenue = totalCompletedOrders.subtract(this.totalDeductedImportCost);
-
-        // Nếu âm thì trả về 0 cho đẹp mắt
         return netRevenue.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : netRevenue;
     }
 }

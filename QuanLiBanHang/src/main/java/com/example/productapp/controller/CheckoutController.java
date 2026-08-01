@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/checkout")
@@ -29,14 +30,14 @@ public class CheckoutController {
     /** Hiển thị trang nhập thông tin đặt hàng */
     @GetMapping
     public String showCheckoutPage(Authentication authentication, Model model) {
-        if (cartService.getItems().isEmpty()) {
+        // 🌟 1. GIỎ HÀNG RỖNG THÌ CHUYỂN BẮT BỘC VỀ TRANG GIỎ HÀNG
+        if (cartService.getItems() == null || cartService.getItems().isEmpty()) {
             return "redirect:/cart";
         }
 
         model.addAttribute("cartItems", cartService.getItems());
         model.addAttribute("totalAmount", cartService.getTotalAmount());
 
-        // Lấy thông tin khách hàng nếu đã đăng nhập để tự điền form & hiển thị số dư ví
         if (authentication != null) {
             Customer customer = customerService.getCustomerByUsername(authentication.getName());
             model.addAttribute("customer", customer);
@@ -53,33 +54,37 @@ public class CheckoutController {
                                   @RequestParam(value = "note", required = false) String note,
                                   @RequestParam(value = "paymentMethod", defaultValue = "COD") String paymentMethod,
                                   Authentication authentication,
-                                  Model model) {
+                                  RedirectAttributes redirectAttributes) {
+
+        // 🌟 2. GIỎ HÀNG RỖNG THÌ KHÔNG CHO PHÉP XỬ LÝ
+        if (cartService.getItems() == null || cartService.getItems().isEmpty()) {
+            return "redirect:/cart";
+        }
 
         String username = (authentication != null) ? authentication.getName() : null;
         String email = username != null ? username + "@gmail.com" : "";
 
         try {
-            // Gọi OrderService đã được cập nhật logic trừ tiền ví & cộng tiền admin
             Order order = orderService.createOrder(customerName, phoneNumber, address, note, email, paymentMethod, username);
 
             if (order == null) {
                 return "redirect:/cart";
             }
 
-            model.addAttribute("order", order);
-            return "order-success";
+            // 🌟 3. ĐẶT HÀNG THÀNH CÔNG -> REDIRECT SANG TRANG THÀNH CÔNG (CHỐNG REFRESH DỰ LIỆU)
+            redirectAttributes.addFlashAttribute("order", order);
+            return "redirect:/checkout/success";
 
-        } catch (RuntimeException e) {
-            // 🌟 BẮT LỖI TÀI KHOẢN KHÔNG ĐỦ TIỀN HOẶC HẾT HÀNG KHO
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("cartItems", cartService.getItems());
-            model.addAttribute("totalAmount", cartService.getTotalAmount());
-
-            if (authentication != null) {
-                model.addAttribute("customer", customerService.getCustomerByUsername(authentication.getName()));
-            }
-
-            return "checkout"; // Trả lại trang checkout kèm câu thông báo lỗi màu đỏ
+        } catch (Exception e) {
+            // 🌟 4. BẮT LỖI VÀ REDIRECT VỀ /checkout
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage() != null ? e.getMessage() : "Có lỗi xảy ra trong quá trình xử lý đơn hàng!");
+            return "redirect:/checkout";
         }
+    }
+
+    /** 🌟 5. TRANG HIỂN THỊ ĐẶT HÀNG THÀNH CÔNG */
+    @GetMapping("/success")
+    public String orderSuccess() {
+        return "order-success";
     }
 }
