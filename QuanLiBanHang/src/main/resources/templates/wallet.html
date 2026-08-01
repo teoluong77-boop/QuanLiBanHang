@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ví tiền của tôi - CSMS</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container" style="max-width: 500px; margin-top: 50px;">
+    <h2>💳 Ví tiền cá nhân</h2>
+    <a class="btn btn-secondary" th:href="@{/products}">⬅ Quay lại mua hàng</a>
+    <hr>
+
+    <div style="background: #e0f2fe; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+        <p style="margin: 0; color: #0369a1;">Số dư tài khoản hiện tại:</p>
+        <h1 style="margin: 10px 0; color: #0284c7;"
+            th:text="${customer != null and customer.balance != null ? #numbers.formatDecimal(customer.balance, 1, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</h1>
+    </div>
+
+    <!-- Thông báo nạp thành công -->
+    <div th:if="${param.success}" style="background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+        ✅ Nạp tiền vào tài khoản thành công!
+    </div>
+
+    <form th:action="@{/wallet/deposit}" method="post">
+        <label><strong>Nhập số tiền muốn nạp (VNĐ):</strong></label>
+        <input type="number" name="amount" min="10000" step="10000" placeholder="Ví dụ: 500000" required
+               style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px;">
+        <button type="submit" class="btn" style="width: 100%; background: #16a34a; color: white; padding: 12px; font-weight: bold;">➕ Nạp tiền ngay</button>
+    </form>
+</div>
+</body>
+</html>

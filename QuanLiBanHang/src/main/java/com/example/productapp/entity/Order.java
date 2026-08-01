@@ -26,13 +26,14 @@ public class Order {
     private String address;
     private String note;
 
-    // 🌟 ĐÃ ĐỔI TỪ DOUBLE SANG BIGDECIMAL LƯU TỔNG TIỀN
+    // 🌟 PHƯƠNG THỨC THANH TOÁN ("COD" hoặc "WALLET")
+    private String paymentMethod;
+
     @Column(precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
     private LocalDateTime orderDate;
 
-    // 🌟 ĐÃ ĐỔI TỪ USER SANG CUSTOMER THEO GÓP Ý CỦA THẦY
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private Customer customer;

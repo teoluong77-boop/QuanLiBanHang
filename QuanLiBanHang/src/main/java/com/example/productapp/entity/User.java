@@ -3,6 +3,8 @@ package com.example.productapp.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -23,4 +25,9 @@ public class User {
     private String password;
 
     private String role; // "ROLE_USER" hoặc "ROLE_ADMIN"
+
+    // 🌟 SỐ DƯ TÀI KHOẢN ADMIN / CHỦ SHOP (Nhận tiền khi khách mua hàng)
+    @Column(precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal balance = BigDecimal.ZERO;
 }

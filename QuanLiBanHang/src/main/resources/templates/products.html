@@ -40,6 +40,8 @@
 
             <!-- 2. NGƯỜI DÙNG THƯỜNG ĐÃ ĐĂNG NHẬP (USER) -->
             <div sec:authorize="hasAuthority('ROLE_USER') or hasAuthority('USER')" style="display: flex; gap: 10px;">
+                <!-- 🌟 THÊM NÚT VÍ TIỀN VÀO ĐÂY -->
+                <a class="btn" style="background-color: #16a34a; color: white;" th:href="@{/wallet}">💳 Ví tiền</a>
                 <a class="btn" style="background-color: #5bc0de; color: white;" th:href="@{/my-orders}">📜 Đơn hàng của tôi</a>
             </div>
 
