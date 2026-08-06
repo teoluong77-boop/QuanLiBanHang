@@ -74,4 +74,6 @@ Việc định dạng dữ liệu đầu ra được phân chia xử lý rõ rà
 | **Tên, Địa chỉ, SĐT** | `String` | Lưu chuỗi ký tự. SĐT dùng String để giữ nguyên số `0` ở đầu. |
 | **Giá tiền, Tổng tiền** | `Double` | Hỗ trợ tính toán tiền tệ và tương thích tốt với Form Validation. |
 | **Số lượng kho / Mua** | `Integer` | Quản lý số lượng mặt hàng, kiểm soát cảnh báo tồn kho. |
-| **Thời gian tạo đơn** | `LocalDateTime` | Lưu chính xác ngày giờ tạo giao dịch theo chuẩn API Java 8+. |
+| **Thời gian tạo đơn** | `LocalDateTime` | Lưu chính xác ngày giờ tạo giao dịch theo chuẩn API Java 8+. |  
+
+

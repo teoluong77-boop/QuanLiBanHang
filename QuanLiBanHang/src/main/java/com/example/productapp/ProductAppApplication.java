@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Diem khoi dong cua ung dung.
- *
  * {@code @SpringBootApplication} = @Configuration + @ComponentScan + @EnableAutoConfiguration:
  *   - Configuration: class nay la nguon dinh nghia bean/cau hinh.
  *   - ComponentScan: quet moi @Controller/@Service... trong com.example.productapp.*

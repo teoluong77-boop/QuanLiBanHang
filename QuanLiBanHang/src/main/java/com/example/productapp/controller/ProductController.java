@@ -4,8 +4,12 @@ import com.example.productapp.entity.Product;
 import com.example.productapp.repository.CategoryRepository;
 import com.example.productapp.service.OrderService;
 import com.example.productapp.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,6 +24,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/products")
+@Tag(name = "Product Controller", description = "Quản lý danh sách sản phẩm, Tìm kiếm, Thêm, Sửa, Xóa")
 public class ProductController {
 
     private final ProductService productService;
@@ -33,6 +38,10 @@ public class ProductController {
         this.categoryRepository = categoryRepository;
         this.orderService = orderService;
     }
+
+    // =========================================================================
+    // 🌐 1. TRẢ VỀ GIAO DIỆN WEB THYMELEAF (Dành cho trình duyệt lướt Web)
+    // =========================================================================
 
     /** Danh sách sản phẩm, tìm kiếm & lọc theo danh mục */
     @GetMapping
@@ -192,5 +201,75 @@ public class ProductController {
     public String deleteProduct(@PathVariable("id") Long id) {
         productService.deleteById(id);
         return "redirect:/products";
+    }
+
+    // =========================================================================
+    // 🚀 2. TRẢ VỀ JSON CHO SWAGGER (Có @ResponseBody để Swagger hiển thị)
+    // =========================================================================
+
+    @GetMapping("/api/all")
+    @ResponseBody
+    @Operation(summary = "Lấy danh sách tất cả sản phẩm (Có tìm kiếm theo từ khóa & danh mục)")
+    public ResponseEntity<List<Product>> getAllProductsApi(@RequestParam(name = "keyword", required = false) String keyword,
+                                                           @RequestParam(name = "categoryId", required = false) Long categoryId) {
+        List<Product> products = productService.search(keyword);
+        if (categoryId != null) {
+            products = products.stream()
+                    .filter(p -> p.getCategory() != null && p.getCategory().getId().equals(categoryId))
+                    .toList();
+        }
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/api/{id}")
+    @ResponseBody
+    @Operation(summary = "Lấy thông tin chi tiết 1 sản phẩm theo ID")
+    public ResponseEntity<Product> getProductByIdApi(@PathVariable("id") Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(product);
+    }
+
+    @PostMapping("/api/add")
+    @ResponseBody
+    @Operation(summary = "Thêm mới sản phẩm qua REST API")
+    public ResponseEntity<?> addProductApi(@RequestBody Product product) {
+        try {
+            productService.add(product);
+            return ResponseEntity.status(HttpStatus.CREATED).body(product);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi thêm sản phẩm: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/api/edit/{id}")
+    @ResponseBody
+    @Operation(summary = "Cập nhật sản phẩm theo ID qua REST API")
+    public ResponseEntity<?> updateProductApi(@PathVariable("id") Long id, @RequestBody Product product) {
+        Product existingProduct = productService.findById(id);
+        if (existingProduct == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        existingProduct.setName(product.getName());
+        existingProduct.setImportPrice(product.getImportPrice());
+        existingProduct.setPrice(product.getPrice());
+        existingProduct.setQuantity(product.getQuantity());
+        existingProduct.setCategory(product.getCategory());
+        existingProduct.setRating(product.getRating());
+        existingProduct.setTag(product.getTag());
+
+        productService.add(existingProduct);
+        return ResponseEntity.ok(existingProduct);
+    }
+
+    @DeleteMapping("/api/delete/{id}")
+    @ResponseBody
+    @Operation(summary = "Xóa sản phẩm theo ID qua REST API")
+    public ResponseEntity<String> deleteProductApi(@PathVariable("id") Long id) {
+        productService.deleteById(id);
+        return ResponseEntity.ok("Đã xóa thành công sản phẩm ID: " + id);
     }
 }

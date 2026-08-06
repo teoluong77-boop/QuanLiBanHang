@@ -62,14 +62,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // 1. CHỈ DÀNH CHO ADMIN: Thêm, sửa, xóa sản phẩm & trang Dashboard Admin (Đặt lên trên cùng để ưu tiên)
+                        // 🌟 1. MỞ QUYỀN TRUY CẬP CÔNG KHAI CHO SWAGGER UI & API DOCS
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // 2. CHỈ DÀNH CHO ADMIN: Thêm, sửa, xóa sản phẩm & trang Dashboard Admin
                         .requestMatchers("/products/add", "/products/edit/**", "/products/delete/**", "/admin/**")
                         .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
 
-                        // 2. BẮT BỘC ĐĂNG NHẬP: Trang xem lịch sử đơn hàng cá nhân
+                        // 3. BẮT BỘC ĐĂNG NHẬP: Trang xem lịch sử đơn hàng cá nhân
                         .requestMatchers("/my-orders/**").authenticated()
 
-                        // 3. CÔNG KHAI CẢ CHO KHÁCH VẮNG LAI: Xem sản phẩm, xem chi tiết, mua hàng, giỏ hàng, checkout
+                        // 4. CÔNG KHAI CẢ CHO KHÁCH VẮNG LAI: Xem sản phẩm, xem chi tiết, mua hàng, giỏ hàng, checkout
                         .requestMatchers(
                                 "/",
                                 "/login",
@@ -83,7 +90,7 @@ public class SecurityConfig {
                                 "/orders/**"
                         ).permitAll()
 
-                        // 4. Các Request còn lại
+                        // 5. Các Request còn lại
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
@@ -93,7 +100,7 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/products") // 🌟 ĐÃ ĐỔI: Đăng xuất xong chuyển ngay tới Trang danh sách mua hàng
+                        .logoutSuccessUrl("/products") // Đăng xuất xong chuyển ngay tới Trang danh sách mua hàng
                         .permitAll()
                 );
 
